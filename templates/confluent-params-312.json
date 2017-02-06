@@ -1,0 +1,83 @@
+[
+    {
+        "ParameterKey": "ClusterName",
+        "ParameterValue": "awscp1",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "ConfluentVersion",
+        "ParameterValue": "3.1.2",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "NumBrokers",
+        "ParameterValue": "3",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "NumZookeepers",
+        "ParameterValue": "1",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "NumWorkers",
+        "ParameterValue": "1",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "BrokerNodeType",
+        "ParameterValue": "d2.xlarge",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "BrokerNodeSpotPrice",
+        "ParameterValue": "1.00",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "ZookeeperNodeType",
+        "ParameterValue": "m3.medium",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "ZookeeperNodeSpotPrice",
+        "ParameterValue": "1.00",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "WorkerNodeType",
+        "ParameterValue": "m4.2xlarge",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "WorkerNodeSpotPrice",
+        "ParameterValue": "1.00",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "VpcSubnetId",
+        "ParameterValue": "subnet-377aab53",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "LinuxOS",
+        "ParameterValue": "Ubuntu-16.04",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "BootDiskSize",
+        "ParameterValue": "30",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "PersistentStorage",
+        "ParameterValue": "128",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "KeyName",
+        "ParameterValue": "dtucker",
+        "UsePreviousValue": false
+    }
+]
+
