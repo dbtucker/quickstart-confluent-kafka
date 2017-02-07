@@ -132,7 +132,7 @@
         "QSS3KeyPrefix": {
             "AllowedPattern": "^[0-9a-zA-Z-]+(/[0-9a-zA-Z-]+)*$",
             "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
-            "Default": "linux/bastion/latest",
+            "Default": "confluent/kafka/latest",
             "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
             "Type": "String"
         },
@@ -191,6 +191,64 @@
         }
     },
     "Mappings": {
+        "AWSInfoRegionMap": {
+            "ap-northeast-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-northeast-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-south-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-southeast-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-southeast-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ca-central-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-central-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-west-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-west-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "sa-east-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-east-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-east-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-west-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-west-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            }
+        },
         "ConfluentVersion2Vindex": {
             "3.1.2": {
                 "Vindex": "312"
@@ -331,7 +389,29 @@
         "BrokerStack": {
             "Type": "AWS::CloudFormation::Stack",
             "Properties": {
-                "TemplateURL": "https://s3.amazonaws.com/confluent-cft-devel/templates/CP-NodeGroup.template",
+                "TemplateURL": {
+                    "Fn::Join": [
+                        "/",
+                        [
+                            {
+                                "Fn::FindInMap": [
+                                    "AWSInfoRegionMap",
+                                    {
+                                        "Ref": "AWS::Region"
+                                    },
+                                    "QuickStartS3URL"
+                                ]
+                            },
+                            {
+                                "Ref": "QSS3BucketName"
+                            },
+                            {
+                                "Ref": "QSS3KeyPrefix"
+                            },
+                            "templates/nodegroup.template"
+                        ]
+                    ]
+                },
                 "Parameters": {
                     "ParentStackName": {
                         "Ref": "AWS::StackName"
@@ -386,7 +466,29 @@
             "Type": "AWS::CloudFormation::Stack",
             "Condition": "IndependentZookeepers",
             "Properties": {
-                "TemplateURL": "https://s3.amazonaws.com/confluent-cft-devel/templates/CP-NodeGroup.template",
+                "TemplateURL": {
+                    "Fn::Join": [
+                        "/",
+                        [
+                            {
+                                "Fn::FindInMap": [
+                                    "AWSInfoRegionMap",
+                                    {
+                                        "Ref": "AWS::Region"
+                                    },
+                                    "QuickStartS3URL"
+                                ]
+                            },
+                            {
+                                "Ref": "QSS3BucketName"
+                            },
+                            {
+                                "Ref": "QSS3KeyPrefix"
+                            },
+                            "templates/nodegroup.template"
+                        ]
+                    ]
+                },
                 "Parameters": {
                     "ParentStackName": {
                         "Ref": "AWS::StackName"
@@ -441,7 +543,29 @@
             "Type": "AWS::CloudFormation::Stack",
             "Condition": "IndependentWorkers",
             "Properties": {
-                "TemplateURL": "https://s3.amazonaws.com/confluent-cft-devel/templates/CP-NodeGroup.template",
+                "TemplateURL": {
+                    "Fn::Join": [
+                        "/",
+                        [
+                            {
+                                "Fn::FindInMap": [
+                                    "AWSInfoRegionMap",
+                                    {
+                                        "Ref": "AWS::Region"
+                                    },
+                                    "QuickStartS3URL"
+                                ]
+                            },
+                            {
+                                "Ref": "QSS3BucketName"
+                            },
+                            {
+                                "Ref": "QSS3KeyPrefix"
+                            },
+                            "templates/nodegroup.template"
+                        ]
+                    ]
+                },
                 "Parameters": {
                     "ParentStackName": {
                         "Ref": "AWS::StackName"
