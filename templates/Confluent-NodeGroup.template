@@ -1,365 +1,616 @@
 {
-  "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "CloudFormation sub-template for Auto-scaling group deployment",
-  "Parameters": {
-    "ParentStackName": {
-      "Description": "Wrapper stack for this deployment",
-      "Type": "String"
-    },
-    "NodeDesignation": {
-      "Description": "Tag for deployed instances",
-      "Type": "String"
-    },
-    "NumNodes": {
-      "Description": "Number of Nodes in Auto-scaling Group",
-      "Type": "Number",
-      "Default": "3",
-      "MinValue": "1",
-      "MaxValue": "9"
-    },
-    "NodeType": {
-      "Type": "String",
-      "Default": "d2.xlarge",
-      "Description": "Instance Type",
-      "AllowedValues": [
-        "m3.medium",
-        "m3.large",
-        "m3.xlarge",
-        "m4.large",
-        "m4.xlarge",
-        "m4.2xlarge",
-        "m4.4xlarge",
-        "d2.xlarge",
-        "d2.2xlarge",
-        "d2.4xlarge",
-        "d2.8xlarge",
-        "i2.xlarge",
-        "i2.2xlarge"
-      ],
-      "ConstraintDescription": "Must be a valid EC2 instance type."
-    },
-    "NodeSpotPrice": {
-      "Type": "String",
-      "Default": "0.00",
-      "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
-      "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
-      "ConstraintDescription": "Must be decimal numeric value"
-    },
-    "PersistentStorage": {
-      "Type": "Number",
-      "Default": "0",
-      "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
-      "MinValue": "0",
-      "MaxValue": "1024",
-      "ConstraintDescription": "No more than 1024 GB per device (4 TB per node)."
-    },
-    "LinuxOS": {
-      "Type": "String",
-      "Default": "CentOS-7.1",
-      "Description": "Operating system for cluster instances",
-      "AllowedValues": [
-        "CentOS-7.1",
-        "Ubuntu-16.04",
-        "AmazonLinux-2016.09"
-      ],
-      "ConstraintDescription": "Supported versions of Linux AMI's for Confluent deployments"
-    },
-    "BootDiskSize": {
-      "Type": "Number",
-      "Default": "30",
-      "Description": "Allocated EBS storage for boot disk",
-      "MinValue": "8",
-      "MaxValue": "128",
-      "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes"
-    },
-    "KeyName": {
-      "Type": "String",
-      "Description": "Name of an existing EC2 KeyPair within the AWS account; all instances will launch with this KeyPair",
-      "MinLength": "1"
-    },
-    "NodeSecurityGroup": {
-      "Description": "ID of the Member Security Group (e.g., sg-7f16e910)",
-      "Type": "String",
-      "Default": ""
-    },
-    "VpcSubnetId": {
-      "Description": "ID of the VPC subnet for the deployment",
-      "Type": "String"
-    },
-    "ClusterName": {
-      "Type": "String",
-      "Default": "awsmk",
-      "Description": "Confluent Cluster ID",
-      "AllowedPattern": "([A-Za-z]{1}[0-9A-Za-z_-]*)",
-      "ConstraintDescription": "The ClusterName value must be alphanumeric"
-    },
-    "ConfluentEdition": {
-      "Type": "String",
-      "Default": "Confluent Platform Enterprise",
-      "Description": "Confluent Software Edition; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace/search/results/ref=lbr_navgno_search_box?page=1&searchTerms=confluent",
-      "AllowedValues": [
-        "Confluent Platform",
-        "Confluent Platform Enterprise"
-      ]
-    },
-    "ConfluentSecurity": {
-      "Type": "String",
-      "Default": "Disabled",
-      "Description": "Enable strong authentication for cluster access",
-      "AllowedValues": [
-        "Disabled",
-        "Enabled"
-      ]
-    },
-    "ConfluentVersion": {
-      "Type": "String",
-      "Default": "3.1.2",
-      "Description": "Confluent Software Version",
-      "AllowedValues": [
-        "3.2.0-SNAPSHOT",
-        "3.1.2",
-        "3.1.1"
-      ],
-      "ConstraintDescription": "Supported versions of Confluent Platform within AWS Marketplace"
-    },
-    "InstanceProfile": {
-      "Description": "IAM Profile for the deployment",
-      "Type": "String"
-    },
-    "ClusterInfoHandle": {
-      "Description": "",
-      "Type": "String"
-    }
-  },
-  "Mappings": {
-    "ConfluentVersion2Vindex": {
-      "3.2.0-SNAPSHOT": { "Vindex": "320" },
-      "3.2.0": { "Vindex": "320" },
-      "3.1.2": { "Vindex": "312" },
-      "3.1.1": { "Vindex": "311" }
-    },
-    "AWSRegionVindex2AMI": {
-      "us-west-2": { "311": "ami-71c3f941" }
-    },
-    "LinuxVersion2Vindex": {
-      "CentOS-7.1": { "Vindex": "centos71" },
-      "Ubuntu-16.04": { "Vindex": "ubuntu1604" },
-      "AmazonLinux-2016.09": { "Vindex": "amazon201609" }
-    },
-    "Linux2BootDisk": {
-      "CentOS-7.1": { "BootDisk": "/dev/sda1" },
-      "Ubuntu-16.04": { "BootDisk": "/dev/sda1" },
-      "AmazonLinux-2016.09": { "BootDisk": "/dev/sda1" }
-    },
-    "RegionLinuxVindex2AMI": {
-      "us-west-2": {
-        "centos71": "ami-71c3f941",
-        "ubuntu1604": "ami-a9d276c9",
-        "amazon201609": "ami-f173cc91"
-      }
-    }
-  },
-  "Conditions": {
-    "EphemeralStorage": { "Fn::Equals": [ { "Ref": "PersistentStorage" }, "0" ] },
-    "OnDemandInstances": { "Fn::Equals": [ { "Ref": "NodeSpotPrice" }, "0.00" ] },
-    "UseDefaultSG": { "Fn::Equals": [ { "Ref": "NodeSecurityGroup" }, "" ] }
-  },
-  "Resources": {
-    "NodesReadyHandle": {
-      "Type": "AWS::CloudFormation::WaitConditionHandle"
-    },
-
-    "NodesReadyCondition": {
-      "Type": "AWS::CloudFormation::WaitCondition",
-      "Properties": {
-        "Handle": { "Ref": "NodesReadyHandle" },
-        "Timeout": "2400",
-        "Count": { "Ref": "NumNodes" }
-      }
-    },
-
-    "Nodes": {
-      "Type": "AWS::AutoScaling::AutoScalingGroup",
-      "Properties": {
-        "VPCZoneIdentifier": [ { "Ref": "VpcSubnetId" } ],
-        "LaunchConfigurationName": { "Ref": "NodeLaunchConfig" },
-        "MinSize": 0,
-        "MaxSize": { "Ref": "NumNodes" },
-        "DesiredCapacity": { "Ref": "NumNodes" }
-      },
-      "CreationPolicy": {
-        "ResourceSignal": { "Count": { "Ref": "NumNodes" }, "Timeout": "PT30M" }
-      }
-    },
-
-    "NodeLaunchConfig": {
-      "Type": "AWS::AutoScaling::LaunchConfiguration",
-      "Properties": {
-        "BlockDeviceMappings": {
-          "Fn::If": [
-            "EphemeralStorage",
-            [
-              {
-                "DeviceName": {
-                  "Fn::FindInMap": [ "Linux2BootDisk", { "Ref": "LinuxOS" }, "BootDisk" ]
-                },
-                "Ebs": { "VolumeSize": { "Ref": "BootDiskSize" }, "DeleteOnTermination": "True" }
-              },
-              { "DeviceName": "/dev/sdb", "VirtualName": "ephemeral0" },
-              { "DeviceName": "/dev/sdc", "VirtualName": "ephemeral1" },
-              { "DeviceName": "/dev/sdd", "VirtualName": "ephemeral2" },
-              { "DeviceName": "/dev/sde", "VirtualName": "ephemeral3" },
-              { "DeviceName": "/dev/sdf", "VirtualName": "ephemeral4" },
-              { "DeviceName": "/dev/sdg", "VirtualName": "ephemeral5" },
-              { "DeviceName": "/dev/sdh", "VirtualName": "ephemeral6" },
-              { "DeviceName": "/dev/sdi", "VirtualName": "ephemeral7" },
-              { "DeviceName": "/dev/sdj", "VirtualName": "ephemeral8" },
-              { "DeviceName": "/dev/sdk", "VirtualName": "ephemeral9" },
-              { "DeviceName": "/dev/sdl", "VirtualName": "ephemeral10" },
-              { "DeviceName": "/dev/sdm", "VirtualName": "ephemeral11" }
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "CloudFormation sub-template for Auto-scaling group deployment",
+    "Parameters": {
+        "ParentStackName": {
+            "Description": "Wrapper stack for this deployment",
+            "Type": "String"
+        },
+        "NodeDesignation": {
+            "Description": "Tag for deployed instances",
+            "Type": "String"
+        },
+        "NumNodes": {
+            "Description": "Number of Nodes in Auto-scaling Group",
+            "Type": "Number",
+            "Default": "3",
+            "MinValue": "1",
+            "MaxValue": "9"
+        },
+        "NodeType": {
+            "Type": "String",
+            "Default": "d2.xlarge",
+            "Description": "Instance Type",
+            "AllowedValues": [
+                "m3.medium",
+                "m3.large",
+                "m3.xlarge",
+                "m4.large",
+                "m4.xlarge",
+                "m4.2xlarge",
+                "m4.4xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge",
+                "i2.xlarge",
+                "i2.2xlarge"
             ],
-            [
-              {
-                "DeviceName": {
-                  "Fn::FindInMap": [ "Linux2BootDisk", { "Ref": "LinuxOS" }, "BootDisk" ]
-                },
-                "Ebs": { "VolumeSize": { "Ref": "BootDiskSize" }, "DeleteOnTermination": "True" }
-              },
-              {
-                "DeviceName": "/dev/sdb",
-                "Ebs": { "VolumeSize": { "Ref": "PersistentStorage" }, "DeleteOnTermination": "True" }
-              },
-              {
-                "DeviceName": "/dev/sdc",
-                "Ebs": { "VolumeSize": { "Ref": "PersistentStorage" }, "DeleteOnTermination": "True" }
-              },
-              {
-                "DeviceName": "/dev/sdd",
-                "Ebs": { "VolumeSize": { "Ref": "PersistentStorage" }, "DeleteOnTermination": "True" }
-              },
-              {
-                "DeviceName": "/dev/sde",
-                "Ebs": { "VolumeSize": { "Ref": "PersistentStorage" }, "DeleteOnTermination": "True" }
-              }
+            "ConstraintDescription": "Must be a valid EC2 instance type."
+        },
+        "NodeSpotPrice": {
+            "Type": "String",
+            "Default": "0.00",
+            "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
+            "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
+            "ConstraintDescription": "Must be decimal numeric value"
+        },
+        "PersistentStorage": {
+            "Type": "Number",
+            "Default": "0",
+            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
+            "MinValue": "0",
+            "MaxValue": "1024",
+            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node)."
+        },
+        "LinuxOS": {
+            "Type": "String",
+            "Default": "CentOS-7.1",
+            "Description": "Operating system for cluster instances",
+            "AllowedValues": [
+                "CentOS-7.1",
+                "Ubuntu-16.04",
+                "AmazonLinux-2016.09"
+            ],
+            "ConstraintDescription": "Supported versions of Linux AMI's for Confluent deployments"
+        },
+        "BootDiskSize": {
+            "Type": "Number",
+            "Default": "30",
+            "Description": "Allocated EBS storage for boot disk",
+            "MinValue": "8",
+            "MaxValue": "128",
+            "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes"
+        },
+        "KeyName": {
+            "Type": "String",
+            "Description": "Name of an existing EC2 KeyPair within the AWS account; all instances will launch with this KeyPair",
+            "MinLength": "1"
+        },
+        "NodeSecurityGroup": {
+            "Description": "ID of the Member Security Group (e.g., sg-7f16e910)",
+            "Type": "String",
+            "Default": ""
+        },
+        "VpcSubnetId": {
+            "Description": "ID of the VPC subnet for the deployment",
+            "Type": "String"
+        },
+        "ClusterName": {
+            "Type": "String",
+            "Default": "awsmk",
+            "Description": "Confluent Cluster ID",
+            "AllowedPattern": "([A-Za-z]{1}[0-9A-Za-z_-]*)",
+            "ConstraintDescription": "The ClusterName value must be alphanumeric"
+        },
+        "ConfluentEdition": {
+            "Type": "String",
+            "Default": "Confluent Platform Enterprise",
+            "Description": "Confluent Software Edition; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace/search/results/ref=lbr_navgno_search_box?page=1&searchTerms=confluent",
+            "AllowedValues": [
+                "Confluent Platform",
+                "Confluent Platform Enterprise"
             ]
-          ]
         },
-        "ImageId": {
-          "Fn::FindInMap": [
-            "RegionLinuxVindex2AMI", { "Ref": "AWS::Region" },
-            { "Fn::FindInMap": [ "LinuxVersion2Vindex", { "Ref": "LinuxOS" }, "Vindex" ] }
-          ]
-        },
-        "SecurityGroups": [ {
-          "Fn::If": [ "UseDefaultSG", 
-            { "Ref": "AWS::NoValue" }, { "Ref": "NodeSecurityGroup" } ] 
-        } ],
-        "InstanceType": {
-          "Ref": "NodeType"
-        },
-        "SpotPrice": {
-          "Fn::If": [ "OnDemandInstances",
-            { "Ref": "AWS::NoValue" }, { "Ref": "NodeSpotPrice" } ]
-        },
-        "KeyName": { "Ref": "KeyName" },
-        "AssociatePublicIpAddress": "true",
-        "IamInstanceProfile": { "Ref": "InstanceProfile" },
-        "UserData": {
-          "Fn::Base64": {
-            "Fn::Join": [
-              "",
-              [
-                "#!/bin/bash\n",
-                "\n",
-                "function error_exit\n",
-                "{\n",
-                " cfn-signal -e 1 --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Nodes\n",
-                " exit 1\n",
-                "}\n",
-                "\n",
-                "## Install core O/S packages\n",
-                "if [ ! -f /usr/bin/sshpass ] ; then \n",
-                "  [ `which yum` ] && yum install -y sshpass \n",
-                "  [ `which apt-get` ] && apt-get -y install sshpass \n",
-                "fi \n",
-                "\n",
-                "which pip &> /dev/null \n",
-                "if [ $? -ne 0 ] ; then \n",
-                "  [ `which yum` ] && yum install -y python-pip\n",
-                "  [ `which apt-get` ] && apt-get -y update && apt-get -y install python-pip\n",
-                "fi \n",
-                "pip install --upgrade pip\n",
-                "pip install awscli --ignore-installed six\n",
-                "\n",
-                "## Install and Update CloudFormation\n",
-                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                "\n",
-                "## Signal that the node is up\n",
-                "cfn-signal -e 0 --stack ", { "Ref": "AWS::StackName" }, " --region ", { "Ref": "AWS::Region" }, " --resource Nodes\n",
-                "\n",
-                "## Save off other cluster details in prep for configuration\n",
-                "echo ", { "Ref": "ClusterName" }, " > /tmp/clustername\n",
-                "echo ", { "Ref": "ConfluentEdition" }, " > /tmp/cedition\n",
-                "echo ", { "Ref": "ConfluentSecurity" }, " > /tmp/csecurity\n",
-                "[ \"", { "Ref": "ConfluentSecurity" }, "\" = 'Disabled' ] && rm /tmp/csecurity\n",
-                "echo ", { "Ref": "ConfluentVersion" }, " > /tmp/cversion\n",
-                "\n",
-                "## Retrieve scripts to deploy Confluent on the instances \n",
-                "##   native s3 command works due to IAM proxy'ing\n",
-                "CP_SBIN_BUCKET=confluent-cft-devel \n",
-                "CP_URL=https://s3-us-west-2.amazonaws.com/confluent-cft-devel/sbin \n",
-                "PATCHES_URL=$CP_URL/patches_", { "Fn::FindInMap": [ "ConfluentVersion2Vindex", { "Ref": "ConfluentVersion" }, "Vindex" ] }, " \n",
-                "AMI_SBIN=/tmp/sbin \n",
-                "mkdir -p $AMI_SBIN \n",
-                "aws s3 cp --recursive s3://$CP_SBIN_BUCKET/sbin $AMI_SBIN \n",
-                "chmod a+x $AMI_SBIN/* \n",
-                "\n",
-                "## Prepare the instance \n",
-                "$AMI_SBIN/prep-cp-instance.sh \n",
-                ". $AMI_SBIN/prepare-disks.sh \n",
-                "\n",
-                "## Wait for all nodes to come on-line\n",
-                "$AMI_SBIN/wait-for-child-resource.sh ", { "Ref": "ParentStackName" }, " ZookeeperStack Nodes\n",
-                "$AMI_SBIN/wait-for-child-resource.sh ", { "Ref": "ParentStackName" }, " BrokerStack Nodes\n",
-                "$AMI_SBIN/wait-for-child-resource.sh ", { "Ref": "ParentStackName" }, " WorkerStack Nodes\n",
-                "\n",
-                "## Now find the private IP addresses of all deployed nodes\n",
-                "##   (generating /tmp/cphosts and /tmp/<role> files)\n",
-                "$AMI_SBIN/gen-cluster-hosts.sh ", { "Ref": "ParentStackName" }, "\n",
-                "\n",
-                "## Tag the instance (now that we're sure of launch index)\n",
-                "##   NOTE: as of Feb 2017, it appears that ami_launch_index is always correct)\n",
-                "instance_id=$(curl -f http://instance-data/latest/meta-data/instance-id)\n",
-                "ami_launch_index=$(curl -f http://instance-data/latest/meta-data/ami-launch-index)\n",
-                "launch_node=$(grep -w `hostname` /tmp/brokers | awk '{print $2}')\n",
-                "launch_index=${launch_node#*NODE}\n",
-                "if [ -n \"$instance_id\" ] ; then\n",
-                "  instance_tag=", { "Ref": "ClusterName" }, "-", { "Ref": "NodeDesignation" }, "-${ami_launch_index}\n",
-                "  aws ec2 create-tags", " --region ", { "Ref": "AWS::Region" }, " --resources $instance_id --tags Key=Name,Value=$instance_tag\n",
-                "fi\n",
-                "## Run the steps to install the software, \n",
-                "## then configure and start the services \n",
-                "$AMI_SBIN/cp-install.sh 2> /tmp/cp-install.err \n",
-                "$AMI_SBIN/cp-deploy.sh 2> /tmp/cp-deploy.err \n",
-                "\n",
-                "## [ OPTIONAL ] Open up ssh to allow direct login\n",
-                "#sed -i 's/ChallengeResponseAuthentication .*no$/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config\n",
-                "#service sshd restart\n",
-                "\n",
-                "## If all went well, signal success (must be done by ALL nodes in group)\n",
-                "cfn-signal -e 0 -r 'Confluent Platform broker deployment complete' '", { "Ref": "NodesReadyHandle" }, "'\n",
-                "\n",
-                "## Wait for all nodes to issue the signal\n",
-                "$AMI_SBIN/wait-for-resource.sh NodesReadyCondition \n",
-                "\n",
-                "## Signal back information for outputs (now that all nodes are up) \n",
-                "$AMI_SBIN/post-cp-info.sh '", { "Ref": "ClusterInfoHandle" }, "'\n",
-                "\n"
-              ]
+        "ConfluentSecurity": {
+            "Type": "String",
+            "Default": "Disabled",
+            "Description": "Enable strong authentication for cluster access",
+            "AllowedValues": [
+                "Disabled",
+                "Enabled"
             ]
-          }
+        },
+        "ConfluentVersion": {
+            "Type": "String",
+            "Default": "3.1.2",
+            "Description": "Confluent Software Version",
+            "AllowedValues": [
+                "3.2.0-SNAPSHOT",
+                "3.1.2",
+                "3.1.1"
+            ],
+            "ConstraintDescription": "Supported versions of Confluent Platform within AWS Marketplace"
+        },
+        "InstanceProfile": {
+            "Description": "IAM Profile for the deployment",
+            "Type": "String"
+        },
+        "ClusterInfoHandle": {
+            "Description": "",
+            "Type": "String"
         }
-      }
+    },
+    "Mappings": {
+        "ConfluentVersion2Vindex": {
+            "3.2.0-SNAPSHOT": {
+                "Vindex": "320"
+            },
+            "3.2.0": {
+                "Vindex": "320"
+            },
+            "3.1.2": {
+                "Vindex": "312"
+            },
+            "3.1.1": {
+                "Vindex": "311"
+            }
+        },
+        "AWSRegionVindex2AMI": {
+            "us-west-2": {
+                "311": "ami-71c3f941"
+            }
+        },
+        "LinuxVersion2Vindex": {
+            "CentOS-7.1": {
+                "Vindex": "centos71"
+            },
+            "Ubuntu-16.04": {
+                "Vindex": "ubuntu1604"
+            },
+            "AmazonLinux-2016.09": {
+                "Vindex": "amazon201609"
+            }
+        },
+        "Linux2BootDisk": {
+            "CentOS-7.1": {
+                "BootDisk": "/dev/sda1"
+            },
+            "Ubuntu-16.04": {
+                "BootDisk": "/dev/sda1"
+            },
+            "AmazonLinux-2016.09": {
+                "BootDisk": "/dev/sda1"
+            }
+        },
+        "RegionLinuxVindex2AMI": {
+            "us-west-2": {
+                "centos71": "ami-71c3f941",
+                "ubuntu1604": "ami-a9d276c9",
+                "amazon201609": "ami-f173cc91"
+            }
+        }
+    },
+    "Conditions": {
+        "EphemeralStorage": {
+            "Fn::Equals": [
+                {
+                    "Ref": "PersistentStorage"
+                },
+                "0"
+            ]
+        },
+        "OnDemandInstances": {
+            "Fn::Equals": [
+                {
+                    "Ref": "NodeSpotPrice"
+                },
+                "0.00"
+            ]
+        },
+        "UseDefaultSG": {
+            "Fn::Equals": [
+                {
+                    "Ref": "NodeSecurityGroup"
+                },
+                ""
+            ]
+        }
+    },
+    "Resources": {
+        "NodesReadyHandle": {
+            "Type": "AWS::CloudFormation::WaitConditionHandle"
+        },
+        "NodesReadyCondition": {
+            "Type": "AWS::CloudFormation::WaitCondition",
+            "Properties": {
+                "Handle": {
+                    "Ref": "NodesReadyHandle"
+                },
+                "Timeout": "2400",
+                "Count": {
+                    "Ref": "NumNodes"
+                }
+            }
+        },
+        "Nodes": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "Properties": {
+                "VPCZoneIdentifier": [
+                    {
+                        "Ref": "VpcSubnetId"
+                    }
+                ],
+                "LaunchConfigurationName": {
+                    "Ref": "NodeLaunchConfig"
+                },
+                "MinSize": 0,
+                "MaxSize": {
+                    "Ref": "NumNodes"
+                },
+                "DesiredCapacity": {
+                    "Ref": "NumNodes"
+                }
+            },
+            "CreationPolicy": {
+                "ResourceSignal": {
+                    "Count": {
+                        "Ref": "NumNodes"
+                    },
+                    "Timeout": "PT30M"
+                }
+            }
+        },
+        "NodeLaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Properties": {
+                "BlockDeviceMappings": {
+                    "Fn::If": [
+                        "EphemeralStorage",
+                        [
+                            {
+                                "DeviceName": {
+                                    "Fn::FindInMap": [
+                                        "Linux2BootDisk",
+                                        {
+                                            "Ref": "LinuxOS"
+                                        },
+                                        "BootDisk"
+                                    ]
+                                },
+                                "Ebs": {
+                                    "VolumeSize": {
+                                        "Ref": "BootDiskSize"
+                                    },
+                                    "DeleteOnTermination": "True"
+                                }
+                            },
+                            {
+                                "DeviceName": "/dev/sdb",
+                                "VirtualName": "ephemeral0"
+                            },
+                            {
+                                "DeviceName": "/dev/sdc",
+                                "VirtualName": "ephemeral1"
+                            },
+                            {
+                                "DeviceName": "/dev/sdd",
+                                "VirtualName": "ephemeral2"
+                            },
+                            {
+                                "DeviceName": "/dev/sde",
+                                "VirtualName": "ephemeral3"
+                            },
+                            {
+                                "DeviceName": "/dev/sdf",
+                                "VirtualName": "ephemeral4"
+                            },
+                            {
+                                "DeviceName": "/dev/sdg",
+                                "VirtualName": "ephemeral5"
+                            },
+                            {
+                                "DeviceName": "/dev/sdh",
+                                "VirtualName": "ephemeral6"
+                            },
+                            {
+                                "DeviceName": "/dev/sdi",
+                                "VirtualName": "ephemeral7"
+                            },
+                            {
+                                "DeviceName": "/dev/sdj",
+                                "VirtualName": "ephemeral8"
+                            },
+                            {
+                                "DeviceName": "/dev/sdk",
+                                "VirtualName": "ephemeral9"
+                            },
+                            {
+                                "DeviceName": "/dev/sdl",
+                                "VirtualName": "ephemeral10"
+                            },
+                            {
+                                "DeviceName": "/dev/sdm",
+                                "VirtualName": "ephemeral11"
+                            }
+                        ],
+                        [
+                            {
+                                "DeviceName": {
+                                    "Fn::FindInMap": [
+                                        "Linux2BootDisk",
+                                        {
+                                            "Ref": "LinuxOS"
+                                        },
+                                        "BootDisk"
+                                    ]
+                                },
+                                "Ebs": {
+                                    "VolumeSize": {
+                                        "Ref": "BootDiskSize"
+                                    },
+                                    "DeleteOnTermination": "True"
+                                }
+                            },
+                            {
+                                "DeviceName": "/dev/sdb",
+                                "Ebs": {
+                                    "VolumeSize": {
+                                        "Ref": "PersistentStorage"
+                                    },
+                                    "DeleteOnTermination": "True"
+                                }
+                            },
+                            {
+                                "DeviceName": "/dev/sdc",
+                                "Ebs": {
+                                    "VolumeSize": {
+                                        "Ref": "PersistentStorage"
+                                    },
+                                    "DeleteOnTermination": "True"
+                                }
+                            },
+                            {
+                                "DeviceName": "/dev/sdd",
+                                "Ebs": {
+                                    "VolumeSize": {
+                                        "Ref": "PersistentStorage"
+                                    },
+                                    "DeleteOnTermination": "True"
+                                }
+                            },
+                            {
+                                "DeviceName": "/dev/sde",
+                                "Ebs": {
+                                    "VolumeSize": {
+                                        "Ref": "PersistentStorage"
+                                    },
+                                    "DeleteOnTermination": "True"
+                                }
+                            }
+                        ]
+                    ]
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RegionLinuxVindex2AMI",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        {
+                            "Fn::FindInMap": [
+                                "LinuxVersion2Vindex",
+                                {
+                                    "Ref": "LinuxOS"
+                                },
+                                "Vindex"
+                            ]
+                        }
+                    ]
+                },
+                "SecurityGroups": [
+                    {
+                        "Fn::If": [
+                            "UseDefaultSG",
+                            {
+                                "Ref": "AWS::NoValue"
+                            },
+                            {
+                                "Ref": "NodeSecurityGroup"
+                            }
+                        ]
+                    }
+                ],
+                "InstanceType": {
+                    "Ref": "NodeType"
+                },
+                "SpotPrice": {
+                    "Fn::If": [
+                        "OnDemandInstances",
+                        {
+                            "Ref": "AWS::NoValue"
+                        },
+                        {
+                            "Ref": "NodeSpotPrice"
+                        }
+                    ]
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "AssociatePublicIpAddress": "true",
+                "IamInstanceProfile": {
+                    "Ref": "InstanceProfile"
+                },
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "\n",
+                                "function error_exit\n",
+                                "{\n",
+                                " cfn-signal -e 1 --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " --resource Nodes\n",
+                                " exit 1\n",
+                                "}\n",
+                                "\n",
+                                "## Install core O/S packages\n",
+                                "if [ ! -f /usr/bin/sshpass ] ; then \n",
+                                "  [ `which yum` ] && yum install -y sshpass \n",
+                                "  [ `which apt-get` ] && apt-get -y install sshpass \n",
+                                "fi \n",
+                                "\n",
+                                "which pip &> /dev/null \n",
+                                "if [ $? -ne 0 ] ; then \n",
+                                "  [ `which yum` ] && yum install -y python-pip\n",
+                                "  [ `which apt-get` ] && apt-get -y update && apt-get -y install python-pip\n",
+                                "fi \n",
+                                "pip install --upgrade pip\n",
+                                "pip install awscli --ignore-installed six\n",
+                                "\n",
+                                "## Install and Update CloudFormation\n",
+                                "easy_install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                                "\n",
+                                "## Signal that the node is up\n",
+                                "cfn-signal -e 0 --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " --resource Nodes\n",
+                                "\n",
+                                "## Save off other cluster details in prep for configuration\n",
+                                "echo ",
+                                {
+                                    "Ref": "ClusterName"
+                                },
+                                " > /tmp/clustername\n",
+                                "echo ",
+                                {
+                                    "Ref": "ConfluentEdition"
+                                },
+                                " > /tmp/cedition\n",
+                                "echo ",
+                                {
+                                    "Ref": "ConfluentSecurity"
+                                },
+                                " > /tmp/csecurity\n",
+                                "[ \"",
+                                {
+                                    "Ref": "ConfluentSecurity"
+                                },
+                                "\" = 'Disabled' ] && rm /tmp/csecurity\n",
+                                "echo ",
+                                {
+                                    "Ref": "ConfluentVersion"
+                                },
+                                " > /tmp/cversion\n",
+                                "\n",
+                                "## Retrieve scripts to deploy Confluent on the instances \n",
+                                "##   native s3 command works due to IAM proxy'ing\n",
+                                "CP_SBIN_BUCKET=confluent-cft-devel \n",
+                                "CP_URL=https://s3-us-west-2.amazonaws.com/confluent-cft-devel/sbin \n",
+                                "PATCHES_URL=$CP_URL/patches_",
+                                {
+                                    "Fn::FindInMap": [
+                                        "ConfluentVersion2Vindex",
+                                        {
+                                            "Ref": "ConfluentVersion"
+                                        },
+                                        "Vindex"
+                                    ]
+                                },
+                                " \n",
+                                "AMI_SBIN=/tmp/sbin \n",
+                                "mkdir -p $AMI_SBIN \n",
+                                "aws s3 cp --recursive s3://$CP_SBIN_BUCKET/sbin $AMI_SBIN \n",
+                                "chmod a+x $AMI_SBIN/* \n",
+                                "\n",
+                                "## Prepare the instance \n",
+                                "$AMI_SBIN/prep-cp-instance.sh \n",
+                                ". $AMI_SBIN/prepare-disks.sh \n",
+                                "\n",
+                                "## Wait for all nodes to come on-line\n",
+                                "$AMI_SBIN/wait-for-child-resource.sh ",
+                                {
+                                    "Ref": "ParentStackName"
+                                },
+                                " ZookeeperStack Nodes\n",
+                                "$AMI_SBIN/wait-for-child-resource.sh ",
+                                {
+                                    "Ref": "ParentStackName"
+                                },
+                                " BrokerStack Nodes\n",
+                                "$AMI_SBIN/wait-for-child-resource.sh ",
+                                {
+                                    "Ref": "ParentStackName"
+                                },
+                                " WorkerStack Nodes\n",
+                                "\n",
+                                "## Now find the private IP addresses of all deployed nodes\n",
+                                "##   (generating /tmp/cphosts and /tmp/<role> files)\n",
+                                "$AMI_SBIN/gen-cluster-hosts.sh ",
+                                {
+                                    "Ref": "ParentStackName"
+                                },
+                                "\n",
+                                "\n",
+                                "## Tag the instance (now that we're sure of launch index)\n",
+                                "##   NOTE: as of Feb 2017, it appears that ami_launch_index is always correct)\n",
+                                "instance_id=$(curl -f http://instance-data/latest/meta-data/instance-id)\n",
+                                "ami_launch_index=$(curl -f http://instance-data/latest/meta-data/ami-launch-index)\n",
+                                "launch_node=$(grep -w `hostname` /tmp/brokers | awk '{print $2}')\n",
+                                "launch_index=${launch_node#*NODE}\n",
+                                "if [ -n \"$instance_id\" ] ; then\n",
+                                "  instance_tag=",
+                                {
+                                    "Ref": "ClusterName"
+                                },
+                                "-",
+                                {
+                                    "Ref": "NodeDesignation"
+                                },
+                                "-${ami_launch_index}\n",
+                                "  aws ec2 create-tags",
+                                " --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " --resources $instance_id --tags Key=Name,Value=$instance_tag\n",
+                                "fi\n",
+                                "## Run the steps to install the software, \n",
+                                "## then configure and start the services \n",
+                                "$AMI_SBIN/cp-install.sh 2> /tmp/cp-install.err \n",
+                                "$AMI_SBIN/cp-deploy.sh 2> /tmp/cp-deploy.err \n",
+                                "\n",
+                                "## [ OPTIONAL ] Open up ssh to allow direct login\n",
+                                "#sed -i 's/ChallengeResponseAuthentication .*no$/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config\n",
+                                "#service sshd restart\n",
+                                "\n",
+                                "## If all went well, signal success (must be done by ALL nodes in group)\n",
+                                "cfn-signal -e 0 -r 'Confluent Platform broker deployment complete' '",
+                                {
+                                    "Ref": "NodesReadyHandle"
+                                },
+                                "'\n",
+                                "\n",
+                                "## Wait for all nodes to issue the signal\n",
+                                "$AMI_SBIN/wait-for-resource.sh NodesReadyCondition \n",
+                                "\n",
+                                "## Signal back information for outputs (now that all nodes are up) \n",
+                                "$AMI_SBIN/post-cp-info.sh '",
+                                {
+                                    "Ref": "ClusterInfoHandle"
+                                },
+                                "'\n",
+                                "\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        }
     }
-  }
 }
