@@ -1,6 +1,129 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "CloudFormation template to deploy Confluent Platform on AWS",
+    "Metadata": {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "Confluent Configuration"
+                    },
+                    "Parameters": [
+                        "ClusterName",
+                        "ConfluentEdition",
+                        "ConfluentVersion",
+                        "ConfluentSecurity"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Core EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "KeyName",
+                        "LinuxOS",
+                        "BootDiskSize",
+                        "VpcSubnetId"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Broker EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "NumBrokers",
+                        "BrokerNodeType",
+                        "BrokerNodeStorage",
+                        "BrokerNodeSpotPrice"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Zookeeper EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "NumZookeepers",
+                        "ZookeeperNodeType",
+                        "ZookeeperNodeStorage",
+                        "ZookeeperNodeSpotPrice"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Worker EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "NumWorkers",
+                        "WorkerNodeType",
+                        "WorkerNodeStorage",
+                        "WorkerNodeSpotPrice"
+                    ]
+                }
+            ],
+            "ParameterLabels": {
+                "ClusterName": {
+                    "default": "Cluster Name"
+                },
+                "ConfluentEdition": {
+                    "default": "Confluent Edition"
+                },
+                "ConfluentVersion": {
+                    "default": "Confluent Version"
+                },
+                "ConfluentSecurity": {
+                    "default": "Secure Authentication"
+                },
+                "KeyName": {
+                    "default": "Key Pair Name"
+                },
+                "LinuxOS": {
+                    "default": "Linux Operating System"
+                },
+                "BootDiskSize": {
+                    "default": "Boot Disk Capacity (GB)"
+                },
+                "VpcSubnetId": {
+                    "default": "VPC Subnet"
+                },
+                "NumBrokers": {
+                    "default": "Broker count"
+                },
+                "BrokerNodeType": {
+                    "default": "Instance Type"
+                },
+                "BrokerNodeStorage": {
+                    "default": "Persistent Storage"
+                },
+                "BrokerNodeSpotPrice": {
+                    "default": "Spot Price (optional)"
+                },
+                "NumZookeepers": {
+                    "default": "Zookeeper count"
+                },
+                "ZookeeperNodeType": {
+                    "default": "Instance Type"
+                },
+                "ZookeeperNodeStorage": {
+                    "default": "Persistent Storage"
+                },
+                "ZookeeperNodeSpotPrice": {
+                    "default": "Spot Price (optional)"
+                },
+                "NumWorkers": {
+                    "default": "Worker count"
+                },
+                "WorkerNodeType": {
+                    "default": "Instance Type"
+                },
+                "WorkerNodeStorage": {
+                    "default": "Persistent Storage"
+                },
+                "WorkerNodeSpotPrice": {
+                    "default": "Spot Price (optional)"
+                }
+            }
+        }
+    },
     "Parameters": {
         "BootDiskSize": {
             "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes",
@@ -16,6 +139,14 @@
             "Default": "0.00",
             "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
             "Type": "String"
+        },
+        "BrokerNodeStorage": {
+            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
+            "Default": "0",
+            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
+            "MaxValue": "1024",
+            "MinValue": "0",
+            "Type": "Number"
         },
         "BrokerNodeType": {
             "AllowedValues": [
@@ -50,7 +181,7 @@
                 "Confluent Platform Enterprise"
             ],
             "Default": "Confluent Platform Enterprise",
-            "Description": "Confluent Software Edition; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace/search/results/ref=lbr_navgno_search_box?page=1&searchTerms=confluent",
+            "Description": "Confluent Software Edition",
             "Type": "String"
         },
         "ConfluentSecurity": {
@@ -59,7 +190,7 @@
                 "Enabled"
             ],
             "Default": "Disabled",
-            "Description": "Enable strong authentication for cluster access",
+            "Description": "Enable secure authentication for cluster access",
             "Type": "String"
         },
         "ConfluentVersion": {
@@ -86,7 +217,7 @@
             ],
             "ConstraintDescription": "Supported versions of Linux AMI's for Confluent deployments",
             "Default": "CentOS-7.1",
-            "Description": "Operating system for cluster instances",
+            "Description": "Operating system for cluster instances; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace",
             "Type": "String"
         },
         "NumBrokers": {
@@ -114,14 +245,6 @@
             "Description": "Number of independent Zookeepers (if 0, zookeeper deployed with Kafka brokers)",
             "Type": "String"
         },
-        "PersistentStorage": {
-            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
-            "Default": "0",
-            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
-            "MinValue": "0",
-            "Type": "Number"
-        },
         "QSS3BucketName": {
             "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
             "ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
@@ -139,7 +262,7 @@
         "VpcSubnetId": {
             "AllowedPattern": "subnet-(\\w{8})",
             "ConstraintDescription": "must be a valid AWS subnet (subnet-xxxxxxx}",
-            "Description": "VPC Subnet for cluster deployment; VPC must exist with proper configuration for Confluent cluster access {internal ane external}",
+            "Description": "VPC Subnet for cluster deployment; VPC must exist with proper configuration for Confluent cluster access {internal and external}",
             "Type": "String"
         },
         "WorkerNodeSpotPrice": {
@@ -148,6 +271,14 @@
             "Default": "0.00",
             "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
             "Type": "String"
+        },
+        "WorkerNodeStorage": {
+            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
+            "Default": "0",
+            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
+            "MaxValue": "1024",
+            "MinValue": "0",
+            "Type": "Number"
         },
         "WorkerNodeType": {
             "AllowedValues": [
@@ -174,6 +305,14 @@
             "Default": "0.00",
             "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
             "Type": "String"
+        },
+        "ZookeeperNodeStorage": {
+            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
+            "Default": "0",
+            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
+            "MaxValue": "1024",
+            "MinValue": "0",
+            "Type": "Number"
         },
         "ZookeeperNodeType": {
             "AllowedValues": [
@@ -248,59 +387,9 @@
                 "Partition": "aws",
                 "QuickStartS3URL": "https://s3.amazonaws.com"
             }
-        },
-        "ConfluentVersion2Vindex": {
-            "3.1.2": {
-                "Vindex": "312"
-            },
-            "3.1.1": {
-                "Vindex": "311"
-            }
-        },
-        "AWSRegionVindex2AMI": {
-            "us-west-2": {
-                "311": "ami-71c3f941"
-            }
-        },
-        "LinuxVersion2Vindex": {
-            "CentOS-7.1": {
-                "Vindex": "centos71"
-            },
-            "Ubuntu-16.04": {
-                "Vindex": "ubuntu1604"
-            },
-            "AmazonLinux-2016.09": {
-                "Vindex": "amazon201609"
-            }
-        },
-        "Linux2BootDisk": {
-            "CentOS-7.1": {
-                "BootDisk": "/dev/sda1"
-            },
-            "Ubuntu-16.04": {
-                "BootDisk": "/dev/sda1"
-            },
-            "AmazonLinux-2016.09": {
-                "BootDisk": "/dev/sda1"
-            }
-        },
-        "RegionLinuxVindex2AMI": {
-            "us-west-2": {
-                "centos71": "ami-71c3f941",
-                "ubuntu1604": "ami-a9d276c9",
-                "amazon201609": "ami-f173cc91"
-            }
         }
     },
     "Conditions": {
-        "EphemeralStorage": {
-            "Fn::Equals": [
-                {
-                    "Ref": "PersistentStorage"
-                },
-                "0"
-            ]
-        },
         "IndependentWorkers": {
             "Fn::Not": [
                 {
@@ -427,7 +516,7 @@
                         "Ref": "BrokerNodeSpotPrice"
                     },
                     "PersistentStorage": {
-                        "Ref": "PersistentStorage"
+                        "Ref": "BrokerNodeStorage"
                     },
                     "LinuxOS": {
                         "Ref": "LinuxOS"
@@ -504,7 +593,7 @@
                         "Ref": "ZookeeperNodeSpotPrice"
                     },
                     "PersistentStorage": {
-                        "Ref": "PersistentStorage"
+                        "Ref": "ZookeeperNodeStorage"
                     },
                     "LinuxOS": {
                         "Ref": "LinuxOS"
@@ -581,7 +670,7 @@
                         "Ref": "WorkerNodeSpotPrice"
                     },
                     "PersistentStorage": {
-                        "Ref": "PersistentStorage"
+                        "Ref": "WorkerNodeStorage"
                     },
                     "LinuxOS": {
                         "Ref": "LinuxOS"
