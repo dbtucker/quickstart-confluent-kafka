@@ -10,6 +10,11 @@
         "UsePreviousValue": false
     },
     {
+        "ParameterKey": "LinuxOS",
+        "ParameterValue": "Ubuntu-16.04",
+        "UsePreviousValue": false
+    },
+    {
         "ParameterKey": "NumBrokers",
         "ParameterValue": "3",
         "UsePreviousValue": false
@@ -26,12 +31,17 @@
     },
     {
         "ParameterKey": "BrokerNodeType",
-        "ParameterValue": "d2.xlarge",
+        "ParameterValue": "m4.xlarge",
         "UsePreviousValue": false
     },
     {
         "ParameterKey": "BrokerNodeSpotPrice",
         "ParameterValue": "1.00",
+        "UsePreviousValue": false
+    },
+    {
+        "ParameterKey": "BrokerNodeStorage",
+        "ParameterValue": "128",
         "UsePreviousValue": false
     },
     {
@@ -45,6 +55,11 @@
         "UsePreviousValue": false
     },
     {
+        "ParameterKey": "ZookeeperNodeStorage",
+        "ParameterValue": "32",
+        "UsePreviousValue": false
+    },
+    {
         "ParameterKey": "WorkerNodeType",
         "ParameterValue": "m4.2xlarge",
         "UsePreviousValue": false
@@ -55,28 +70,18 @@
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "VpcSubnetId",
-        "ParameterValue": "subnet-377aab53",
+        "ParameterKey": "WorkerNodeStorage",
+        "ParameterValue": "0",
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "LinuxOS",
-        "ParameterValue": "Ubuntu-16.04",
+        "ParameterKey": "QSS3BucketName",
+        "ParameterValue": "my-confluent-quickstart",
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "BootDiskSize",
-        "ParameterValue": "30",
-        "UsePreviousValue": false
-    },
-    {
-        "ParameterKey": "PersistentStorage",
-        "ParameterValue": "128",
-        "UsePreviousValue": false
-    },
-    {
-        "ParameterKey": "KeyName",
-        "ParameterValue": "dtucker",
+        "ParameterKey": "QSS3KeyPrefix",
+        "ParameterValue": "testing",
         "UsePreviousValue": false
     }
 ]
