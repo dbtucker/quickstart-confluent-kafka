@@ -1,0 +1,12 @@
+compute-heap-opts
+cp-deploy.sh
+cp-install.sh
+cp-retrieve-connect-jars.sh
+cp-retrieve-scripts.sh
+gen-cluster-hosts.sh
+post-cp-info.sh
+prep-cp-instance.sh
+prepare-disks.sh
+scripts_userdata.sh
+wait-for-child-resource.sh
+wait-for-resource.sh
