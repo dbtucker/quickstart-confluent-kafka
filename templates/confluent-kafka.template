@@ -127,7 +127,7 @@
     "Parameters": {
         "BootDiskSize": {
             "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes",
-            "Default": "30",
+            "Default": "24",
             "Description": "Allocated EBS storage for boot disk",
             "MaxValue": "128",
             "MinValue": "8",
@@ -547,7 +547,21 @@
                     },
                     "ClusterInfoHandle": {
                         "Ref": "ClusterInfoHandle"
-                    }
+                    },
+                    "ScriptsURL": { 
+                        "Fn::Join": [ "/",
+                            [ 
+                                { "Fn::FindInMap": [ 
+                                    "AWSInfoRegionMap", 
+                                    { "Ref": "AWS::Region" }, 
+                                    "QuickStartS3URL" 
+                                ] },
+                                { "Ref": "QSS3BucketName" }, 
+                                { "Ref": "QSS3KeyPrefix" }, 
+                                "scripts"
+                            ]
+                         ] 
+                     }
                 }
             }
         },
@@ -624,6 +638,20 @@
                     },
                     "ClusterInfoHandle": {
                         "Ref": "ClusterInfoHandle"
+                    },
+                    "ScriptsURL": { 
+                        "Fn::Join": [ "/",
+                            [ 
+                                { "Fn::FindInMap": [ 
+                                    "AWSInfoRegionMap", 
+                                    { "Ref": "AWS::Region" }, 
+                                    "QuickStartS3URL" 
+                                ] },
+                                { "Ref": "QSS3BucketName" }, 
+                                { "Ref": "QSS3KeyPrefix" }, 
+                                "scripts"
+                            ]
+                         ] 
                     }
                 }
             }
@@ -701,6 +729,20 @@
                     },
                     "ClusterInfoHandle": {
                         "Ref": "ClusterInfoHandle"
+                    },
+                    "ScriptsURL": { 
+                        "Fn::Join": [ "/",
+                            [ 
+                                { "Fn::FindInMap": [ 
+                                    "AWSInfoRegionMap", 
+                                    { "Ref": "AWS::Region" }, 
+                                    "QuickStartS3URL" 
+                                ] },
+                                { "Ref": "QSS3BucketName" }, 
+                                { "Ref": "QSS3KeyPrefix" }, 
+                                "scripts"
+                            ]
+                         ] 
                     }
                 }
             }

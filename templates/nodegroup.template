@@ -126,12 +126,93 @@
             "MinValue": "0",
             "Type": "Number"
         },
+        "ScriptsURL": {
+            "Description": "",
+            "Type": "String"
+        },
         "VpcSubnetId": {
             "Description": "ID of the VPC subnet for the deployment",
             "Type": "String"
         }
     },
     "Mappings": {
+        "AWSAMIRegionMap": {
+            "AMI": {
+                "AMZNLINUXHVM": "amzn-ami-hvm-2016.09.1.20170119-x86_64-gp2",
+                "CENTOS7HVM": "CentOS Linux 7 x86_64 HVM EBS 1602-b7ee8a69-ee97-4a49-9e68-afaee216db2e-ami-d7e1d2bd.3",
+                "US1604HVM": "ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20161214-d83d0782-cb94-46d7-8993-f4ce15d1a484-ami-e13739f6.3"
+            },
+            "ap-northeast-1": {
+                "AMZNLINUXHVM": "ami-56d4ad31",
+                "CENTOS7HVM": "ami-eec1c380",
+                "US1604HVM": "ami-1c13787b"
+            },
+            "ap-northeast-2": {
+                "AMZNLINUXHVM": "ami-dac312b4",
+                "CENTOS7HVM": "ami-c74789a9",
+                "US1604HVM": "ami-14a0767a"
+            },
+            "ap-south-1": {
+                "AMZNLINUXHVM": "ami-f9daac96",
+                "CENTOS7HVM": "ami-95cda6fa",
+                "US1604HVM": "ami-19f78076"
+            },
+            "ap-southeast-1": {
+                "AMZNLINUXHVM": "ami-dc9339bf",
+                "CENTOS7HVM": "ami-f068a193",
+                "US1604HVM": "ami-75ac0216"
+            },
+            "ap-southeast-2": {
+                "AMZNLINUXHVM": "ami-1c47407f",
+                "CENTOS7HVM": "ami-fedafc9d",
+                "US1604HVM": "ami-bdc7fcde"
+            },
+            "ca-central-1": {
+                "AMZNLINUXHVM": "ami-ebed508f",
+                "CENTOS7HVM": "ami-af62d0cb",
+                "US1604HVM": "ami-e72a9883"
+            },
+            "eu-central-1": {
+                "AMZNLINUXHVM": "ami-af0fc0c0",
+                "CENTOS7HVM": "ami-9bf712f4",
+                "US1604HVM": "ami-232aea4c"
+            },
+            "eu-west-1": {
+                "AMZNLINUXHVM": "ami-70edb016",
+                "CENTOS7HVM": "ami-7abd0209",
+                "US1604HVM": "ami-cac6e6b9"
+            },
+            "eu-west-2": {
+                "AMZNLINUXHVM": "ami-f1949e95",
+                "CENTOS7HVM": "ami-bb373ddf",
+                "US1604HVM": "ami-e8e3e98c"
+            },
+            "sa-east-1": {
+                "AMZNLINUXHVM": "ami-80086dec",
+                "CENTOS7HVM": "ami-26b93b4a",
+                "US1604HVM": "ami-687de504"
+            },
+            "us-east-1": {
+                "AMZNLINUXHVM": "ami-0b33d91d",
+                "CENTOS7HVM": "ami-6d1c2007",
+                "US1604HVM": "ami-2c57433b"
+            },
+            "us-east-2": {
+                "AMZNLINUXHVM": "ami-c55673a0",
+                "CENTOS7HVM": "ami-6a2d760f",
+                "US1604HVM": "ami-8ccd97e9"
+            },
+            "us-west-1": {
+                "AMZNLINUXHVM": "ami-165a0876",
+                "CENTOS7HVM": "ami-af4333cf",
+                "US1604HVM": "ami-fe26779e"
+            },
+            "us-west-2": {
+                "AMZNLINUXHVM": "ami-f173cc91",
+                "CENTOS7HVM": "ami-d2c924b2",
+                "US1604HVM": "ami-2709bd47"
+            }
+        },
         "ConfluentVersion2Vindex": {
             "3.2.0-SNAPSHOT": {
                 "Vindex": "320"
@@ -146,38 +227,26 @@
                 "Vindex": "311"
             }
         },
-        "AWSRegionVindex2AMI": {
-            "us-west-2": {
-                "311": "ami-71c3f941"
-            }
-        },
-        "LinuxVersion2Vindex": {
+        "LinuxAMINameMap": {
+            "AmazonLinux-2016.09": {
+                "Code": "AMZNLINUXHVM"
+            },
             "CentOS-7.1": {
-                "Vindex": "centos71"
+                "Code": "CENTOS7HVM"
             },
             "Ubuntu-16.04": {
-                "Vindex": "ubuntu1604"
-            },
-            "AmazonLinux-2016.09": {
-                "Vindex": "amazon201609"
+                "Code": "US1604HVM"
             }
         },
         "Linux2BootDisk": {
+            "AmazonLinux-2016.09": {
+                "BootDisk": "/dev/xvda"
+            },
             "CentOS-7.1": {
                 "BootDisk": "/dev/sda1"
             },
             "Ubuntu-16.04": {
                 "BootDisk": "/dev/sda1"
-            },
-            "AmazonLinux-2016.09": {
-                "BootDisk": "/dev/sda1"
-            }
-        },
-        "RegionLinuxVindex2AMI": {
-            "us-west-2": {
-                "centos71": "ami-71c3f941",
-                "ubuntu1604": "ami-a9d276c9",
-                "amazon201609": "ami-f173cc91"
             }
         }
     },
@@ -383,17 +452,17 @@
                 },
                 "ImageId": {
                     "Fn::FindInMap": [
-                        "RegionLinuxVindex2AMI",
+                        "AWSAMIRegionMap",
                         {
                             "Ref": "AWS::Region"
                         },
                         {
                             "Fn::FindInMap": [
-                                "LinuxVersion2Vindex",
+                                "LinuxAMINameMap",
                                 {
                                     "Ref": "LinuxOS"
                                 },
-                                "Vindex"
+                                "Code"
                             ]
                         }
                     ]
@@ -509,23 +578,14 @@
                                 " > /tmp/cversion\n",
                                 "\n",
                                 "## Retrieve scripts to deploy Confluent on the instances \n",
-                                "##   native s3 command works due to IAM proxy'ing\n",
-                                "CP_SBIN_BUCKET=confluent-cft-devel \n",
-                                "CP_URL=https://s3-us-west-2.amazonaws.com/confluent-cft-devel/sbin \n",
-                                "PATCHES_URL=$CP_URL/patches_",
+                                "CP_SCRIPTS_LOC=",
                                 {
-                                    "Fn::FindInMap": [
-                                        "ConfluentVersion2Vindex",
-                                        {
-                                            "Ref": "ConfluentVersion"
-                                        },
-                                        "Vindex"
-                                    ]
+                                    "Ref": "ScriptsURL"
                                 },
                                 " \n",
                                 "AMI_SBIN=/tmp/sbin \n",
-                                "mkdir -p $AMI_SBIN \n",
-                                "aws s3 cp --recursive s3://$CP_SBIN_BUCKET/sbin $AMI_SBIN \n",
+                                "curl -f -s ${CP_SCRIPTS_LOC}/cp-retrieve-scripts.sh -o /tmp/cp-retrieve-scripts.sh \n",
+                                "sh /tmp/cp-retrieve-scripts.sh $CP_SCRIPTS_LOC $AMI_SBIN\n",
                                 "chmod a+x $AMI_SBIN/* \n",
                                 "\n",
                                 "## Prepare the instance \n",
