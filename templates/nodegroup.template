@@ -4,7 +4,7 @@
     "Parameters": {
         "BootDiskSize": {
             "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes",
-            "Default": "30",
+            "Default": "24",
             "Description": "Allocated EBS storage for boot disk",
             "MaxValue": "128",
             "MinValue": "8",
@@ -23,11 +23,11 @@
         },
         "ConfluentEdition": {
             "AllowedValues": [
-                "Confluent Platform",
-                "Confluent Platform Enterprise"
+                "Confluent Open Source",
+                "Confluent Enterprise"
             ],
-            "Default": "Confluent Platform Enterprise",
-            "Description": "Confluent Software Edition; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace/search/results/ref=lbr_navgno_search_box?page=1&searchTerms=confluent",
+            "Default": "Confluent Enterprise",
+            "Description": "Confluent Software Edition",
             "Type": "String"
         },
         "ConfluentSecurity": {
@@ -41,12 +41,12 @@
         },
         "ConfluentVersion": {
             "AllowedValues": [
-                "3.2.0-SNAPSHOT",
+                "3.2.0",
                 "3.1.2",
                 "3.1.1"
             ],
             "ConstraintDescription": "Supported versions of Confluent Platform within AWS Marketplace",
-            "Default": "3.1.2",
+            "Default": "3.1.1",
             "Description": "Confluent Software Version",
             "Type": "String"
         },
@@ -214,9 +214,6 @@
             }
         },
         "ConfluentVersion2Vindex": {
-            "3.2.0-SNAPSHOT": {
-                "Vindex": "320"
-            },
             "3.2.0": {
                 "Vindex": "320"
             },
@@ -322,6 +319,24 @@
         },
         "NodeLaunchConfig": {
             "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "config": {
+                        "files": {
+                            "/tmp/cp-retrieve-scripts.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-scripts.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            }
+                        }
+                    }
+                }
+            },
             "Properties": {
                 "BlockDeviceMappings": {
                     "Fn::If": [
@@ -578,14 +593,26 @@
                                 " > /tmp/cversion\n",
                                 "\n",
                                 "## Retrieve scripts to deploy Confluent on the instances \n",
+                                "##  cfn-init downloads cp-retrieve-scripts.sh \n",
+                                "##  and then we're off to the races \n",
+                                "cfn-init -v ",
+                                "         --stack ", 
+                                { 
+                                    "Ref": "AWS::StackName" 
+                                },
+                                "         --resource NodeLaunchConfig ",
+                                "         --region ", 
+                                { 
+                                    "Ref": "AWS::Region" 
+                                },
+                                "\n",
                                 "CP_SCRIPTS_LOC=",
                                 {
                                     "Ref": "ScriptsURL"
                                 },
                                 " \n",
                                 "AMI_SBIN=/tmp/sbin \n",
-                                "curl -f -s ${CP_SCRIPTS_LOC}/cp-retrieve-scripts.sh -o /tmp/cp-retrieve-scripts.sh \n",
-                                "sh /tmp/cp-retrieve-scripts.sh $CP_SCRIPTS_LOC $AMI_SBIN\n",
+                                "/tmp/cp-retrieve-scripts.sh $CP_SCRIPTS_LOC $AMI_SBIN\n",
                                 "chmod a+x $AMI_SBIN/* \n",
                                 "\n",
                                 "## Prepare the instance \n",

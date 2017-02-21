@@ -51,12 +51,13 @@ SCRIPTDIR=`dirname ${THIS_SCRIPT}`
 
 LOG=/tmp/cp-retrieve-scripts.log
 
-S3_REGION=${S3_REGION:-us-west-2}
+S3_REGION=${S3_REGION:-us-east-1}
 
 SCRIPT_SRC=${1:-}
 TARGET_DIR=${2:-/tmp/scripts}
 LFILE=${LFILE:-scripts.lst}
 
+# TBD : Validate the download 
 do_s3_retrieval() {
 	S3_TOP="${1%/}/"
 	aws s3 cp --recursive ${S3_TOP} $TARGET_DIR/
@@ -71,13 +72,21 @@ do_s3_retrieval() {
 
 # Curl against Amazon buckets is unhappy with double '/' characters,
 # so we always strip off the trailing one.
+#
+# We've also seen conditions where the first curl fails; so we'll
+# do this in a while loop
+#	TBD: add max_retries to retrieval loop
 do_curl_retrieval() {
 	SRC_URL=${1%/}
 	curl -f -s ${SRC_URL}/${LFILE} -o $TARGET_DIR/${LFILE} 
 	[ $? -ne 0 ] && return 1
 
 	for f in $(cat $TARGET_DIR/${LFILE}) ; do
-		[ -n "$f" ] && curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f
+		[ -z "$f" ] && continue
+		while [ ! -f $TARGET_DIR/$f ] ; do
+			curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f
+		done
+		chmod a+x $TARGET_DIR/$f
 	done
 }
 
@@ -103,7 +112,10 @@ main()
 		fi
 		S3_BUCKET=${S3_SRC#s3://}
 		S3_BUCKET=${S3_BUCKET%%/*}
-		HTTP_SRC=https://s3-${S3_REGION}.amazonaws.com/${S3_SRC#s3://}
+
+		S3_HOST="s3-${S3_REGION}"
+		[ "$S3_REGION" = "us-east-1" ] && S3_HOST="s3"
+		HTTP_SRC=https://${S3_HOST}.amazonaws.com/${S3_SRC#s3://}
 
 		do_s3_retrieval ${S3_SRC}
 		if [ $? -ne 0 ] ; then
