@@ -323,6 +323,106 @@
                 "AWS::CloudFormation::Init": {
                     "config": {
                         "files": {
+                            "/tmp/sbin/compute-heap-opts": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "compute-heap-opts" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/cp-deploy.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-deploy.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/cp-install.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-install.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/gen-cluster-hosts.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "gen-cluster-hosts.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/prep-cp-instance.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "prep-cp-instance.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/prepare-disks.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "prepare-disks.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/post-cp-info.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "post-cp-info.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/wait-for-child-resource.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-child-resource.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/wait-for-resource.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-resource.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/cp-retrieve-connect-jars.sh": {
+                                "source": {
+                                    "Fn::Join": [ 
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-connect-jars.sh" ] 
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
                             "/tmp/cp-retrieve-scripts.sh": {
                                 "source": {
                                     "Fn::Join": [ 
@@ -537,6 +637,8 @@
                                 " exit 1\n",
                                 "}\n",
                                 "\n",
+                                "PATH=$PATH:/usr/local/bin \n",
+                                "\n",
                                 "## Install core O/S packages\n",
                                 "if [ ! -f /usr/bin/sshpass ] ; then \n",
                                 "  [ `which yum` ] && yum install -y sshpass \n",
@@ -593,7 +695,7 @@
                                 " > /tmp/cversion\n",
                                 "\n",
                                 "## Retrieve scripts to deploy Confluent on the instances \n",
-                                "##  cfn-init downloads cp-retrieve-scripts.sh \n",
+                                "##  cfn-init downloads them all \n",
                                 "##  and then we're off to the races \n",
                                 "cfn-init -v ",
                                 "         --stack ", 
@@ -606,14 +708,7 @@
                                     "Ref": "AWS::Region" 
                                 },
                                 "\n",
-                                "CP_SCRIPTS_LOC=",
-                                {
-                                    "Ref": "ScriptsURL"
-                                },
-                                " \n",
                                 "AMI_SBIN=/tmp/sbin \n",
-                                "/tmp/cp-retrieve-scripts.sh $CP_SCRIPTS_LOC $AMI_SBIN\n",
-                                "chmod a+x $AMI_SBIN/* \n",
                                 "\n",
                                 "## Prepare the instance \n",
                                 "$AMI_SBIN/prep-cp-instance.sh \n",
