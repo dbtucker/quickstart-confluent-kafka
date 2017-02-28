@@ -819,7 +819,7 @@ main()
 	update_service_heap_opts
 
 	start_node_services
-	[ -n "$workers" ] && start_control_center 
+	[ -n "$workers" ] && [ -f $CONTROL_CENTER_CFG ] && start_control_center 
 
     echo "$0 script finished at "`date` >> $LOG
 }

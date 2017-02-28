@@ -164,7 +164,7 @@
                 "i2.2xlarge"
             ],
             "ConstraintDescription": "Must be a valid EC2 instance type.",
-            "Default": "d2.xlarge",
+            "Default": "m4.xlarge",
             "Description": "Instance Type for Kafka brokers; select m3/m4 or i2 instance types for us-west-1 and sa-east-1",
             "Type": "String"
         },
@@ -177,10 +177,10 @@
         },
         "ConfluentEdition": {
             "AllowedValues": [
-                "Confluent Platform",
-                "Confluent Platform Enterprise"
+                "Confluent Open Source",
+                "Confluent Enterprise"
             ],
-            "Default": "Confluent Platform Enterprise",
+            "Default": "Confluent Enterprise",
             "Description": "Confluent Software Edition",
             "Type": "String"
         },
@@ -195,12 +195,12 @@
         },
         "ConfluentVersion": {
             "AllowedValues": [
-                "3.2.0-SNAPSHOT",
+                "3.2.0",
                 "3.1.2",
                 "3.1.1"
             ],
             "ConstraintDescription": "Supported versions of Confluent Platform within AWS Marketplace",
-            "Default": "3.1.2",
+            "Default": "3.1.1",
             "Description": "Confluent Software Version",
             "Type": "String"
         },
@@ -295,7 +295,7 @@
                 "i2.2xlarge"
             ],
             "ConstraintDescription": "Must be a valid EC2 instance type.",
-            "Default": "m4.2xlarge",
+            "Default": "m4.xlarge",
             "Description": "Instance Type for Kafka Connect workers; select m3/m4 or i2 instance types for us-west-1 and sa-east-1",
             "Type": "String"
         },
@@ -766,7 +766,7 @@
     "Outputs": {
         "ClusterInfo": {
             "Condition": "EnableWaitConditions",
-            "Description": "Confluent Control Center URL and Login",
+            "Description": "Cluster Information",
             "Value": {
                 "Fn::GetAtt": [
                     "ClusterInfoCondition",

@@ -80,7 +80,7 @@ fi
 	# Extract the necessary host lists from our environment
 	# (files created by gen-cluster-hosts.sh).
 	# Env variables will be of the form "host1,host2,..."
-bhosts=$(awk '{print $1}' /tmp/brokers)
+bhosts=$(awk '{print $1}' /tmp/brokers | head -3)
 if [ -n "bhosts" ] ; then
 	brokers=`echo $bhosts`			# convert <\n> to ' '
 fi
@@ -101,8 +101,9 @@ workers=${workers// /,}
 
 
 # TO BE DONE
-#	Figure out the "correct" port in case it's been customized
+#	Figure out the "correct" ports in case it's been customized
 # zkPort=${clientPort:-2181}
+# bPort=${listenerPort:-9092}
 
 zconnect=""
 for znode in ${zknodes//,/ } ; do
@@ -110,6 +111,15 @@ for znode in ${zknodes//,/ } ; do
 		zconnect="$znode:${zkPort:-2181}"
 	else
 		zconnect="$zconnect,$znode:${zkPort:-2181}"
+	fi
+done
+
+bconnect=""
+for bnode in ${brokers//,/ } ; do
+	if [ -z "$bconnect" ] ; then
+		bconnect="$bnode:${bPort:-9092}"
+	else
+		bconnect="$bconnect,$bnode:${bPort:-9092}"
 	fi
 done
 
@@ -159,11 +169,21 @@ echo "	private.zookeeper.connect: $zconnect" >> $LOG
 $CFN_SIGNAL -e 0  -r "Stack_Info" \
     -i "private.zookeeper.connect" -d "$zconnect" "$HANDLE_URL"
 
-echo "	control.center.console: http://${CC_HOST}:9021" >> $LOG
+echo "	private.bootstrap.servers: $bconnect" >> $LOG
 $CFN_SIGNAL -e 0  -r "Stack_Info" \
-	-i "control.center.console" -d "http://${CC_HOST}:9021" "$HANDLE_URL"
+    -i "private.bootstrap.servers" -d "$bconnect" "$HANDLE_URL"
 
-# echo "	control.center.credentials: $KAFKA_USER/${instance_id}" >> $LOG
-# $CFN_SIGNAL -e 0  -r "Stack_Info" \
-#	-i "control.center.credentials" -d "$KAFKA_USER/${instance_id}" "$HANDLE_URL"
+if [ -f /tmp/cedition ] ; then
+ 	grep -q -i enterprise /tmp/cedition 2> /dev/null
+	if [ $? -eq 0 ] ; then
+	  	echo "	control.center.console: http://${CC_HOST}:9021" >> $LOG
+	  	$CFN_SIGNAL -e 0  -r "Stack_Info" \
+		  	-i "control.center.console" -d "http://${CC_HOST}:9021" "$HANDLE_URL"
+
+#		 echo "	control.center.credentials: $KAFKA_USER/${instance_id}" >> $LOG
+#		 $CFN_SIGNAL -e 0  -r "Stack_Info" \
+#			-i "control.center.credentials" -d "$KAFKA_USER/${instance_id}" "$HANDLE_URL"
+	fi
+fi
+
 
