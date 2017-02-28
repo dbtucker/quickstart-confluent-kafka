@@ -71,6 +71,7 @@
             "Type": "String"
         },
         "NodeDesignation": {
+            "Default": "unspecified",
             "Description": "Tag for deployed instances",
             "Type": "String"
         },
@@ -95,6 +96,9 @@
                 "m4.xlarge",
                 "m4.2xlarge",
                 "m4.4xlarge",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
                 "d2.xlarge",
                 "d2.2xlarge",
                 "d2.4xlarge",
@@ -127,7 +131,7 @@
             "Type": "Number"
         },
         "ScriptsURL": {
-            "Description": "",
+            "Description": "Public location from which to download provisiong scripts",
             "Type": "String"
         },
         "VpcSubnetId": {
@@ -647,7 +651,7 @@
                                 "\n",
                                 "which pip &> /dev/null \n",
                                 "if [ $? -ne 0 ] ; then \n",
-                                "  [ `which yum` ] && yum install -y python-pip\n",
+                                "  [ `which yum` ] && $(yum install -y epel-release; yum install -y python-pip)\n",
                                 "  [ `which apt-get` ] && apt-get -y update && apt-get -y install python-pip\n",
                                 "fi \n",
                                 "pip install --upgrade pip\n",
@@ -695,7 +699,7 @@
                                 " > /tmp/cversion\n",
                                 "\n",
                                 "## Retrieve scripts to deploy Confluent on the instances \n",
-                                "##  cfn-init downloads them all \n",
+                                "##  cfn-init downloads everything \n",
                                 "##  and then we're off to the races \n",
                                 "cfn-init -v ",
                                 "         --stack ", 
@@ -743,7 +747,7 @@
                                 "##   NOTE: as of Feb 2017, it appears that ami_launch_index is always correct)\n",
                                 "instance_id=$(curl -f http://instance-data/latest/meta-data/instance-id)\n",
                                 "ami_launch_index=$(curl -f http://instance-data/latest/meta-data/ami-launch-index)\n",
-                                "launch_node=$(grep -w `hostname` /tmp/brokers | awk '{print $2}')\n",
+                                "launch_node=$(grep -w `hostname` /tmp/", { "Ref": "NodeDesignation" }, "s | awk '{print $2}')\n",
                                 "launch_index=${launch_node#*NODE}\n",
                                 "if [ -n \"$instance_id\" ] ; then\n",
                                 "  instance_tag=",

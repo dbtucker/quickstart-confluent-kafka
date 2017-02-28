@@ -183,6 +183,9 @@ install_os_tools() {
         [ $? -ne 0 ] && yum install -y python-pip
 		pip install --upgrade pip
 	fi
+
+		# Add the python pip "requests" package to all instances 
+	pip install --upgrade requests
 }
 
 install_openjdk_deb() {
@@ -208,7 +211,7 @@ install_oracle_jdk_deb() {
         return 1
     fi
 
-    export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+    export JAVA_HOME=/usr/lib/jvm/java-7-oracle
 #    export JAVA_HOME=/usr/lib/jvm/java-8-oracle
 
 	return 0
@@ -249,8 +252,16 @@ install_oracle_jdk_rpm() {
 
 # Install JDK (if necessary)
 #	Always set JAVA_HOME environment variable for use later
+#
 install_jdk() {
-	echo "Installing JAVA"
+	echo "Installing JAVA 8"
+
+		# Kludge: remove Java 7 from Amazon Linux 
+		# (which often has both versions installed).
+	grep -q -e "Amazon Linux" /etc/os-release
+	if [ $? -eq 0 ] ; then
+		yum remove -y java-1.7.0-openjdk java-1.7.0-openjdk-devel
+	fi
 
 		# Simply set JAVA_HOME if java installed (should check version)
 		#
