@@ -75,25 +75,23 @@ SCALA_VERSION=2.11
 if [ -f /tmp/cedition ] ; then
  	grep -q -i enterprise /tmp/cedition 2> /dev/null
 	if [ $? -eq 0 ] ; then
-		CP_TARBALL=confluent-${CP_VERSION}-${SCALA_VERSION}.tar.gz
+		CP_TARBALL=confluent-${CP_VERSION%-STAGING}-${SCALA_VERSION}.tar.gz
 	else
-		CP_TARBALL=confluent-oss-${CP_VERSION}-${SCALA_VERSION}.tar.gz
+		CP_TARBALL=confluent-oss-${CP_VERSION%-STAGING}-${SCALA_VERSION}.tar.gz
 	fi
 else
-	CP_TARBALL=confluent-oss-${CP_VERSION}-${SCALA_VERSION}.tar.gz
+	CP_TARBALL=confluent-oss-${CP_VERSION%-STAGING}-${SCALA_VERSION}.tar.gz
 fi
 
 # Retrieve released versions from packages.confluent.io; 
-#   SNAPSHOT builds are available from Confluent's jenkins hub.
-if [ -n "${CP_VERSION#*SNAPSHOT}" ] ; then
-    CP_TARBALL_URI=http://packages.confluent.io/archive/${CP_MINOR_VERSION}/$CP_TARBALL
-else
-	JENKINS_BUCKET=jenkins-confluent-packages
-	LATEST_BUILD_DIR=$(aws s3 ls s3://${JENKINS_BUCKET}/packaging-${CP_MINOR_VERSION}.x/ | tail -1 | awk '{print $NF}')
-	LATEST_BUILD=${LATEST_BUILD_DIR%/}
+CP_TARBALL_URI=http://packages.confluent.io/archive/${CP_MINOR_VERSION}/$CP_TARBALL
 
-	[ -z "${CP_BUILD}" ] && CP_BUILD=${LATEST_BUILD:-25}
-    CP_TARBALL_URI=https://s3-us-west-2.amazonaws.com/${JENKINS_BUCKET}/packaging-${CP_MINOR_VERSION}.x/${CP_BUILD}/archive/${CP_MINOR_VERSION}/$CP_TARBALL
+# STAGING builds are available from alternative locations.
+#   (and STAGING suffix is not carried through to the tarball or install directory)
+if [ -z "${CP_VERSION#*-STAGING}" ] ; then
+	CP_VERSION=${CP_VERSION%-STAGING}
+	STAGING_BUCKET=staging-confluent-packages-${CP_VERSION}
+	CP_TARBALL_URI=https://s3-us-west-2.amazonaws.com/${STAGING_BUCKET}/archive/${CP_MINOR_VERSION}/$CP_TARBALL
 fi
 
 

@@ -51,7 +51,7 @@ SCRIPTDIR=`dirname ${THIS_SCRIPT}`
 
 LOG=/tmp/cp-retrieve-scripts.log
 
-S3_REGION=${S3_REGION:-us-east-1}
+S3_REGION=${S3_REGION:-us-west-2}
 
 SCRIPT_SRC=${1:-}
 TARGET_DIR=${2:-/tmp/scripts}
@@ -75,7 +75,9 @@ do_s3_retrieval() {
 #
 # We've also seen conditions where the first curl fails; so we'll
 # do this in a while loop
-#	TBD: add max_retries to retrieval loop
+
+MAX_RETRIES=10
+
 do_curl_retrieval() {
 	SRC_URL=${1%/}
 	curl -f -s ${SRC_URL}/${LFILE} -o $TARGET_DIR/${LFILE} 
@@ -83,8 +85,12 @@ do_curl_retrieval() {
 
 	for f in $(cat $TARGET_DIR/${LFILE}) ; do
 		[ -z "$f" ] && continue
+
+		local retry=1
 		while [ ! -f $TARGET_DIR/$f ] ; do
+			[ $retry -gt $MAX_RETRIES ] && break
 			curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f
+			retry=$[retry+1]
 		done
 		chmod a+x $TARGET_DIR/$f
 	done

@@ -79,6 +79,12 @@ KADMIN_GROUP=${KADMIN_GROUP:-kadmin}
 
 CP_HOME=${CP_HOME:-/opt/confluent}
 
+if [ -f /tmp/clustername ] ; then
+	CLUSTERNAME=$(awk '{print $1}' /tmp/clustername)
+else
+	CLUSTERNAME="awsqs"
+fi
+
 # Locate the configuration files (since we use them all the time)
 # Should be called ONLY after the software has been installed.
 locate_cfg() {
@@ -255,6 +261,10 @@ configure_kafka_broker() {
 			# Could also bump num.io.threads (default: 8) and
 			# num.network.threads (default: 3) here.
 	fi
+
+		# Topic management settings
+	set_property $BROKER_CFG "auto.create.topics.enable" "false"
+	set_property $BROKER_CFG "delete.topics.enable" "true"
 
 		# Enable graceful leader migration
 	set_property $BROKER_CFG "controlled.shutdown.enable" "true"
@@ -583,6 +593,9 @@ wait_for_local_zk() {
 # Kludgy function to make sure the cluster is formed before
 # proceeding with the remaining startup activities.
 #
+# Later versions of the image will have the 
+# "Confluent Utility Belt" (cub) utility; use that if present.
+#
 #	NOTE: We only need to wait for other brokers if THIS NODE
 #		is a broker or worker.  zookeeper-only nodes need not 
 #		waste time here
@@ -598,16 +611,23 @@ wait_for_brokers() {
 
     BROKER_WAIT=${1:-300}
 
-    SWAIT=$BROKER_WAIT
-    STIME=5
-    ${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
-    while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
-        sleep $STIME
-        SWAIT=$[SWAIT - $STIME]
-    	${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
-    done
+	if [ -x $SCRIPTDIR/cub  -a  -f $SCRIPTDIR/docker-utils.jar ] ; then
+		DOCKER_UTILS_JAR=$SCRIPTDIR/docker-utils.jar $SCRIPTDIR/cub zk-ready $zconnect $BROKER_WAIT
 
-	[ $SWAIT -le 0 ] && return 1
+		[ $? -ne 0 ] && return 1
+
+	else
+    	SWAIT=$BROKER_WAIT
+    	STIME=5
+    	${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
+    	while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
+        	sleep $STIME
+        	SWAIT=$[SWAIT - $STIME]
+    		${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
+    	done
+
+		[ $SWAIT -le 0 ] && return 1
+	fi
 
 		# Now that we know the ZK cluster is on line, we can check the number
 		# of registered brokers.  Ideally, we'd just look for "enough" brokers,
@@ -617,21 +637,31 @@ wait_for_brokers() {
 	local targetBrokers=$numBrokers
 	[ $targetBrokers -gt 5 ] && targetBrokers=5
 
-	local runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
-    while [ ${runningBrokers:-0} -lt $targetBrokers  -a  $SWAIT -gt 0 ] ; do
-        sleep $STIME
-        SWAIT=$[SWAIT - $STIME]
-		runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
-    done
+	if [ -x $SCRIPTDIR/cub  -a  -f $SCRIPTDIR/docker-utils.jar ] ; then
+		DOCKER_UTILS_JAR=$SCRIPTDIR/docker-utils.jar $SCRIPTDIR/cub kafka-ready -b $bconnect $targetBrokers $BROKER_WAIT
+		[ $? -ne 0 ] && return 1
 
-	[ $SWAIT -le 0 ] && return 1
+	else
+		local runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
+    	while [ ${runningBrokers:-0} -lt $targetBrokers  -a  $SWAIT -gt 0 ] ; do
+        	sleep $STIME
+        	SWAIT=$[SWAIT - $STIME]
+			runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
+    	done
+
+		[ $SWAIT -le 0 ] && return 1
+	fi
 
 	return 0
 }
 
 
 
-# Use hostname to determine services to start
+# Use host role to determine services to start.
+# Separate "core" and "worker" services, since we
+# may need to do some work within the brokers once
+# they are able to respond to admin requests.
+#
 # Configure appropriate services for auto-start
 #
 #	DANGER : the systemctl logic needs the control
@@ -639,7 +669,7 @@ wait_for_brokers() {
 #	cannot start with "$CP_HOME/initscripts/cp-*-service"
 #	and then stop with "/etc/init.d/cp-*-service"
 #
-start_node_services() {
+start_core_services() {
 	CP_TOP=${CP_HOME}
 	[ ! -d $CP_HOME ] && CP_TOP="/usr"
 
@@ -682,9 +712,13 @@ start_node_services() {
 			$BIN_DIR/kafka-server-start -daemon $BROKER_CFG
 		fi
 	fi
+}
 
-		# Very rudimentary function to wait for brokers to come on-line
-	wait_for_brokers
+start_worker_services() {
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP="/usr"
+
+	BIN_DIR=$CP_TOP/bin
 
 		# Schema registy on second worker (or first if there's only one)
 	numWorkers=$(echo "${workers//,/ }" | wc -w)
@@ -731,7 +765,7 @@ start_node_services() {
 			[ $? -ne 0 ] && systemctl enable cp-connect-service
 
 #			$CP_HOME/initscripts/cp-connect-service start
-#			/etc/init.d/cp-connect-service star
+#			/etc/init.d/cp-connect-service start
 			service cp-connect-service start
 		else
 			$BIN_DIR/connect-distributed -daemon $KAFKA_CONNECT_CFG
@@ -762,6 +796,134 @@ start_control_center() {
 			$(cd $BIN_DIR/../logs; $BIN_DIR/control-center-start -daemon $CONTROL_CENTER_CFG > /dev/null)
 		fi
 	fi
+}
+
+# We routinely encounter issues where the
+# workers come on line before the brokers / zookeepers are
+# ready to handle topic creation.  This is a silly wrapper
+# to safely retry topic creation for a more robust behavior.
+#
+#	Inputs: <topic> <partitions> <replicas>
+#	Return: 0 on success, 1 on failure
+#
+# WARNING: no error checking whatsoever
+#
+
+MAX_TOPIC_RETRIES=10
+RETRY_INTERVAL_SEC=5
+create_topic_safely() {
+	local this_retry=1
+	local this_topic=$1
+	local partitions=$2
+	local replicas=$3
+
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP="/usr"
+
+	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+		--create --if-not-exists \
+		--topic $this_topic \
+		--replication-factor ${replicas} --partitions ${partitions}
+	while [ $? -ne 0  -a  $this_retry -lt $MAX_TOPIC_RETRIES ] ; do
+		this_retry=$[this_retry+1]
+		sleep $RETRY_INTERVAL_SEC
+
+		$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+			--create --if-not-exists \
+			--topic $this_topic \
+			--replication-factor ${replicas} --partitions ${partitions}
+	done
+
+	[ $this_retry -ge $MAX_TOPIC_RETRIES ] && return 1
+	return 0
+}
+
+# Crude function to wait for a topic to exist within the cluster.
+#
+#	$1: topic name
+#	$2: (optional) max wait (defaults to 5 minutes)
+wait_for_topic() {
+	local topic=${1:-}
+    local TOPIC_WAIT=${2:-300}
+
+	[ -z "$topic" ] && return
+
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP="/usr"
+
+    SWAIT=$TOPIC_WAIT
+    STIME=5
+	${CP_TOP}/bin/kafka-topics --zookeeper ${zconnect} \
+		--describe --topic ${topic} | grep -q "^Topic:"
+    while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
+        sleep $STIME
+        SWAIT=$[SWAIT - $STIME]
+		${CP_TOP}/bin/kafka-topics --zookeeper ${zconnect} \
+			--describe --topic ${topic} | grep -q "^Topic:"
+    done
+
+}
+
+# Some worker services require existing topics
+# Do that here (ignoring errors for now).
+# 
+# Use "create_topic_safely" on all nodes, since it
+# uses the "--if-not-exists" flag that will correctly
+# avoid collisions when multiple workers try to create
+# the topics.
+#	ALTERNATIVE : Only create topics on worker-0,
+#	let other workers wait.
+#
+create_worker_topics() {
+		# If this instance won't create the topics ... just wait
+		# till the last one shows up.
+#	if [ "${workers%%,*}" != $THIS_HOST ] ; then
+#		wait_for_topic connect-status
+#		return
+#	fi
+
+	local numBrokers=`echo ${brokers//,/ } | wc -w`
+	local numWorkers=`echo ${workers//,/ } | wc -w`
+
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP="/usr"
+
+	BIN_DIR=$CP_TOP/bin
+
+		# Connect requires some simple topics.  Be sure
+		# these align with any overrides when customzing
+		# the connect-distributed.properties above.
+		# 	config.storage.topic=connect-configs
+		#	offset.storage.topic=connect-offsets
+		#	status.storage.topic=connect-status
+	connect_topic_replicas=3
+	[ $connect_topic_replicas -gt $numBrokers ] && connect_topic_replicas=$numBrokers
+
+	connect_config_partitions=1
+#	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+#		--create --topic connect-configs \
+#		--replication-factor ${connect_topic_replicas} 
+#		--partitions ${connect_config_partitions}
+	create_topic_safely connect-configs \
+		${connect_config_partitions} ${connect_topic_replicas}
+
+	connect_offsets_partitions=50
+	[ $numBrokers -lt 6 ] && connect_offsets_partitions=$[numBrokers*8] 
+#	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+#		--create --topic connect-offsets \
+#		--replication-factor ${connect_topic_replicas} \
+#		--partitions ${connect_offsets_partitions}
+	create_topic_safely connect-offsets \
+		${connect_offsets_partitions} ${connect_topic_replicas}
+
+	connect_status_partitions=10
+#	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+#		--create --topic connect-status \
+#		--replication-factor ${connect_topic_replicas} \
+#		--partitions ${connect_status_partitions}
+	create_topic_safely connect-status \
+		${connect_status_partitions} ${connect_topic_replicas}
+
 }
 
 main()
@@ -818,7 +980,11 @@ main()
 	configure_confluent_node
 	update_service_heap_opts
 
-	start_node_services
+	start_core_services
+	wait_for_brokers 			# rudimentary function 
+
+	create_worker_topics
+	start_worker_services
 	[ -n "$workers" ] && [ -f $CONTROL_CENTER_CFG ] && start_control_center 
 
     echo "$0 script finished at "`date` >> $LOG
