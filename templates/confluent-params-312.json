@@ -10,8 +10,8 @@
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "LinuxOS",
-        "ParameterValue": "Ubuntu-16.04",
+        "ParameterKey": "LinuxOSAMI",
+        "ParameterValue": "Ubuntu-Server-16.04-LTS-HVM",
         "UsePreviousValue": false
     },
     {

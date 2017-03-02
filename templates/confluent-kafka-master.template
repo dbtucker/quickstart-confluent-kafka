@@ -22,7 +22,7 @@
                     },
                     "Parameters": [
                         "KeyPairName",
-                        "LinuxOS",
+                        "LinuxOSAMI",
                         "BootDiskSize"
                     ]
                 },
@@ -111,8 +111,8 @@
                 "KeyPairName": {
                     "default": "Key Pair Name"
                 },
-                "LinuxOS": {
-                    "default": "Linux Operating System"
+                "LinuxOSAMI": {
+                    "default": "Linux Operating System AMI"
                 },
                 "NumBrokers": {
                     "default": "Broker count"
@@ -253,15 +253,15 @@
             "Description": "Name of an existing EC2 key pair within the AWS region; all instances will launch with this key pair",
             "Type": "AWS::EC2::KeyPair::KeyName"
         },
-        "LinuxOS": {
+        "LinuxOSAMI": {
             "AllowedValues": [
-                "CentOS-7.1",
-                "Ubuntu-16.04",
-                "AmazonLinux-2016.09"
+                "CentOS-7-HVM",
+                "Ubuntu-Server-16.04-LTS-HVM",
+                "Amazon-Linux-HVM"
             ],
-            "ConstraintDescription": "Supported versions of Linux AMI's for Confluent deployments",
-            "Default": "CentOS-7.1",
-            "Description": "Operating system for cluster instances; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace",
+            "ConstraintDescription": "Supported versions of Linux AMIs for Confluent deployments",
+            "Default": "CentOS-7-HVM",
+            "Description": "Operating system AMI for cluster instances; you MUST authorize access to the proper AMI at https://aws.amazon.com/marketplace",
             "Type": "String"
         },
         "NumBrokers": {
@@ -566,8 +566,8 @@
                     "KeyPairName": {
                         "Ref": "KeyPairName"
                     },
-                    "LinuxOS": {
-                        "Ref": "LinuxOS"
+                    "LinuxOSAMI": {
+                        "Ref": "LinuxOSAMI"
                     },
                     "NumBrokers": {
                         "Ref": "NumBrokers"

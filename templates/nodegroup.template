@@ -58,15 +58,15 @@
             "Description": "Name of an existing EC2 key pair within the AWS region; all instances will launch with this key pair",
             "Type": "AWS::EC2::KeyPair::KeyName"
         },
-        "LinuxOS": {
+        "LinuxOSAMI": {
             "AllowedValues": [
-                "CentOS-7.1",
-                "Ubuntu-16.04",
-                "AmazonLinux-2016.09"
+                "CentOS-7-HVM",
+                "Ubuntu-Server-16.04-LTS-HVM",
+                "Amazon-Linux-HVM"
             ],
-            "ConstraintDescription": "Supported versions of Linux AMI's for Confluent deployments",
-            "Default": "CentOS-7.1",
-            "Description": "Operating system for cluster instances",
+            "ConstraintDescription": "Supported versions of Linux AMIs for Confluent deployments",
+            "Default": "CentOS-7-HVM",
+            "Description": "Operating system AMI for cluster instances",
             "Type": "String"
         },
         "NodeDesignation": {
@@ -228,24 +228,24 @@
             }
         },
         "LinuxAMINameMap": {
-            "AmazonLinux-2016.09": {
+            "Amazon-Linux-HVM": {
                 "Code": "AMZNLINUXHVM"
             },
-            "CentOS-7.1": {
+            "CentOS-7-HVM": {
                 "Code": "CENTOS7HVM"
             },
-            "Ubuntu-16.04": {
+            "Ubuntu-Server-16.04-LTS-HVM": {
                 "Code": "US1604HVM"
             }
         },
         "Linux2BootDisk": {
-            "AmazonLinux-2016.09": {
+            "Amazon-Linux-HVM": {
                 "BootDisk": "/dev/xvda"
             },
-            "CentOS-7.1": {
+            "CentOS-7-HVM": {
                 "BootDisk": "/dev/sda1"
             },
-            "Ubuntu-16.04": {
+            "Ubuntu-Server-16.04-LTS-HVM": {
                 "BootDisk": "/dev/sda1"
             }
         }
@@ -450,7 +450,7 @@
                                     "Fn::FindInMap": [
                                         "Linux2BootDisk",
                                         {
-                                            "Ref": "LinuxOS"
+                                            "Ref": "LinuxOSAMI"
                                         },
                                         "BootDisk"
                                     ]
@@ -517,7 +517,7 @@
                                     "Fn::FindInMap": [
                                         "Linux2BootDisk",
                                         {
-                                            "Ref": "LinuxOS"
+                                            "Ref": "LinuxOSAMI"
                                         },
                                         "BootDisk"
                                     ]
@@ -578,7 +578,7 @@
                             "Fn::FindInMap": [
                                 "LinuxAMINameMap",
                                 {
-                                    "Ref": "LinuxOS"
+                                    "Ref": "LinuxOSAMI"
                                 },
                                 "Code"
                             ]
