@@ -54,10 +54,9 @@
             "Description": "IAM Profile for the deployment",
             "Type": "String"
         },
-        "KeyName": {
-            "Description": "Name of an existing EC2 KeyPair within the AWS account; all instances will launch with this KeyPair",
-            "MinLength": "1",
-            "Type": "String"
+        "KeyPairName": {
+            "Description": "Name of an existing EC2 key pair within the AWS region; all instances will launch with this key pair",
+            "Type": "AWS::EC2::KeyPair::KeyName"
         },
         "LinuxOS": {
             "AllowedValues": [
@@ -134,7 +133,7 @@
             "Description": "Public location from which to download provisiong scripts",
             "Type": "String"
         },
-        "VpcSubnetId": {
+        "VPCSubnetID": {
             "Description": "ID of the VPC subnet for the deployment",
             "Type": "String"
         }
@@ -298,7 +297,7 @@
             "Properties": {
                 "VPCZoneIdentifier": [
                     {
-                        "Ref": "VpcSubnetId"
+                        "Ref": "VPCSubnetID"
                     }
                 ],
                 "LaunchConfigurationName": {
@@ -329,8 +328,8 @@
                         "files": {
                             "/tmp/sbin/compute-heap-opts": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "compute-heap-opts" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "compute-heap-opts" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -339,8 +338,8 @@
                             },
                             "/tmp/sbin/cp-deploy.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-deploy.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-deploy.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -349,8 +348,8 @@
                             },
                             "/tmp/sbin/cp-install.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-install.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-install.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -359,8 +358,8 @@
                             },
                             "/tmp/sbin/gen-cluster-hosts.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "gen-cluster-hosts.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "gen-cluster-hosts.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -369,8 +368,8 @@
                             },
                             "/tmp/sbin/prep-cp-instance.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "prep-cp-instance.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "prep-cp-instance.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -379,8 +378,8 @@
                             },
                             "/tmp/sbin/prepare-disks.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "prepare-disks.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "prepare-disks.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -389,8 +388,8 @@
                             },
                             "/tmp/sbin/post-cp-info.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "post-cp-info.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "post-cp-info.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -399,8 +398,8 @@
                             },
                             "/tmp/sbin/wait-for-child-resource.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-child-resource.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-child-resource.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -409,8 +408,8 @@
                             },
                             "/tmp/sbin/wait-for-resource.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-resource.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-resource.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -419,8 +418,8 @@
                             },
                             "/tmp/sbin/cp-retrieve-connect-jars.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-connect-jars.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-connect-jars.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -429,8 +428,8 @@
                             },
                             "/tmp/cp-retrieve-scripts.sh": {
                                 "source": {
-                                    "Fn::Join": [ 
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-scripts.sh" ] 
+                                    "Fn::Join": [
+                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-scripts.sh" ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -613,8 +612,8 @@
                         }
                     ]
                 },
-                "KeyName": {
-                    "Ref": "KeyName"
+                "KeyPairName": {
+                    "Ref": "KeyPairName"
                 },
                 "AssociatePublicIpAddress": "true",
                 "IamInstanceProfile": {
@@ -702,14 +701,14 @@
                                 "##  cfn-init downloads everything \n",
                                 "##  and then we're off to the races \n",
                                 "cfn-init -v ",
-                                "         --stack ", 
-                                { 
-                                    "Ref": "AWS::StackName" 
+                                "         --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
                                 },
                                 "         --resource NodeLaunchConfig ",
-                                "         --region ", 
-                                { 
-                                    "Ref": "AWS::Region" 
+                                "         --region ",
+                                {
+                                    "Ref": "AWS::Region"
                                 },
                                 "\n",
                                 "AMI_SBIN=/tmp/sbin \n",

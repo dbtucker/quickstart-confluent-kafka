@@ -1,9 +1,60 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "CloudFormation template to deploy Confluent Platform on AWS",
+    "Description": "CloudFormation template to deploy Confluent Platform on AWS QS(5011)",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [
+                {
+                    "Label": {
+                        "default": "Network Configuration"
+                    },
+                    "Parameters": [
+                        "VPCSubnetID"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Common Amazon EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "KeyPairName",
+                        "LinuxOS",
+                        "BootDiskSize"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Broker Amazon EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "NumBrokers",
+                        "BrokerNodeType",
+                        "BrokerNodeStorage",
+                        "BrokerNodeSpotPrice"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Zookeeper Amazon EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "NumZookeepers",
+                        "ZookeeperNodeType",
+                        "ZookeeperNodeStorage",
+                        "ZookeeperNodeSpotPrice"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Worker Amazon EC2 Configuration"
+                    },
+                    "Parameters": [
+                        "NumWorkers",
+                        "WorkerNodeType",
+                        "WorkerNodeStorage",
+                        "WorkerNodeSpotPrice"
+                    ]
+                },
                 {
                     "Label": {
                         "default": "Confluent Configuration"
@@ -17,109 +68,80 @@
                 },
                 {
                     "Label": {
-                        "default": "Core EC2 Configuration"
+                        "default": "AWS Quick Start Configuration"
                     },
                     "Parameters": [
-                        "KeyName",
-                        "LinuxOS",
-                        "BootDiskSize",
-                        "VpcSubnetId"
-                    ]
-                },
-                {
-                    "Label": {
-                        "default": "Broker EC2 Configuration"
-                    },
-                    "Parameters": [
-                        "NumBrokers",
-                        "BrokerNodeType",
-                        "BrokerNodeStorage",
-                        "BrokerNodeSpotPrice"
-                    ]
-                },
-                {
-                    "Label": {
-                        "default": "Zookeeper EC2 Configuration"
-                    },
-                    "Parameters": [
-                        "NumZookeepers",
-                        "ZookeeperNodeType",
-                        "ZookeeperNodeStorage",
-                        "ZookeeperNodeSpotPrice"
-                    ]
-                },
-                {
-                    "Label": {
-                        "default": "Worker EC2 Configuration"
-                    },
-                    "Parameters": [
-                        "NumWorkers",
-                        "WorkerNodeType",
-                        "WorkerNodeStorage",
-                        "WorkerNodeSpotPrice"
+                        "QSS3BucketName",
+                        "QSS3KeyPrefix"
                     ]
                 }
             ],
             "ParameterLabels": {
+                "BootDiskSize": {
+                    "default": "Boot Disk Capacity (GB)"
+                },
+                "BrokerNodeSpotPrice": {
+                    "default": "Spot Price (optional)"
+                },
+                "BrokerNodeStorage": {
+                    "default": "Persistent Storage"
+                },
+                "BrokerNodeType": {
+                    "default": "Instance Type"
+                },
                 "ClusterName": {
                     "default": "Cluster Name"
                 },
                 "ConfluentEdition": {
                     "default": "Confluent Edition"
                 },
-                "ConfluentVersion": {
-                    "default": "Confluent Version"
-                },
                 "ConfluentSecurity": {
                     "default": "Secure Authentication"
                 },
-                "KeyName": {
+                "ConfluentVersion": {
+                    "default": "Confluent Version"
+                },
+                "KeyPairName": {
                     "default": "Key Pair Name"
                 },
                 "LinuxOS": {
                     "default": "Linux Operating System"
                 },
-                "BootDiskSize": {
-                    "default": "Boot Disk Capacity (GB)"
-                },
-                "VpcSubnetId": {
-                    "default": "VPC Subnet"
-                },
                 "NumBrokers": {
                     "default": "Broker count"
-                },
-                "BrokerNodeType": {
-                    "default": "Instance Type"
-                },
-                "BrokerNodeStorage": {
-                    "default": "Persistent Storage"
-                },
-                "BrokerNodeSpotPrice": {
-                    "default": "Spot Price (optional)"
-                },
-                "NumZookeepers": {
-                    "default": "Zookeeper count"
-                },
-                "ZookeeperNodeType": {
-                    "default": "Instance Type"
-                },
-                "ZookeeperNodeStorage": {
-                    "default": "Persistent Storage"
-                },
-                "ZookeeperNodeSpotPrice": {
-                    "default": "Spot Price (optional)"
                 },
                 "NumWorkers": {
                     "default": "Worker count"
                 },
-                "WorkerNodeType": {
-                    "default": "Instance Type"
+                "NumZookeepers": {
+                    "default": "Zookeeper count"
+                },
+                "QSS3BucketName": {
+                    "default": "Quick Start S3 Bucket Name"
+                },
+                "QSS3KeyPrefix": {
+                    "default": "Quick Start S3 Key Prefix"
+                },
+                "VPCSubnetID": {
+                    "default": "VPC Subnet"
+                },
+                "WorkerNodeSpotPrice": {
+                    "default": "Spot Price (optional)"
                 },
                 "WorkerNodeStorage": {
                     "default": "Persistent Storage"
                 },
-                "WorkerNodeSpotPrice": {
+                "WorkerNodeType": {
+                    "default": "Instance Type"
+                },
+                "ZookeeperNodeSpotPrice": {
                     "default": "Spot Price (optional)"
+                },
+                "ZookeeperNodeStorage": {
+                    "default": "Persistent Storage"
+                },
+                "ZookeeperNodeType": {
+                    "default": "Instance Type"
                 }
             }
         }
@@ -174,7 +196,7 @@
         "ClusterName": {
             "AllowedPattern": "([A-Za-z]{1}[0-9A-Za-z_-]*)",
             "ConstraintDescription": "The ClusterName value must be alphanumeric",
-            "Default": "awsmk",
+            "Default": "awsqs",
             "Description": "Confluent Cluster ID",
             "Type": "String"
         },
@@ -207,10 +229,9 @@
             "Description": "Confluent Software Version",
             "Type": "String"
         },
-        "KeyName": {
-            "Description": "Name of an existing EC2 KeyPair within the AWS account; all instances will launch with this KeyPair",
-            "MinLength": "1",
-            "Type": "String"
+        "KeyPairName": {
+            "Description": "Name of an existing EC2 key pair within the AWS region; all instances will launch with this key pair",
+            "Type": "AWS::EC2::KeyPair::KeyName"
         },
         "LinuxOS": {
             "AllowedValues": [
@@ -245,7 +266,7 @@
                 "5"
             ],
             "Default": "0",
-            "Description": "Number of independent Zookeepers (if 0, zookeeper deployed with Kafka brokers)",
+            "Description": "Number of independent Zookeepers (if 0, zookeeper will be deployed on the Kafka brokers)",
             "Type": "String"
         },
         "QSS3BucketName": {
@@ -262,10 +283,10 @@
             "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
             "Type": "String"
         },
-        "VpcSubnetId": {
-            "AllowedPattern": "subnet-(\\w{8})",
-            "ConstraintDescription": "must be a valid AWS subnet (subnet-xxxxxxx}",
-            "Description": "VPC Subnet for cluster deployment; VPC must exist with proper configuration for Confluent cluster access {internal and external}",
+        "VPCSubnetID": {
+            "AllowedPattern": "subnet-[0-9a-f]{8,}",
+            "ConstraintDescription": "must be a valid AWS subnet (e.g. subnet-4b8d329f)",
+            "Description": "VPC Subnet for cluster deployment; VPC must exist with proper configuration for Confluent cluster access (internal and external)",
             "Type": "String"
         },
         "WorkerNodeSpotPrice": {
@@ -508,33 +529,11 @@
                     ]
                 },
                 "Parameters": {
-                    "ParentStackName": {
-                        "Ref": "AWS::StackName"
-                    },
-                    "NodeDesignation": "broker",
-                    "NumNodes": {
-                        "Ref": "NumBrokers"
-                    },
-                    "NodeType": {
-                        "Ref": "BrokerNodeType"
-                    },
-                    "NodeSpotPrice": {
-                        "Ref": "BrokerNodeSpotPrice"
-                    },
-                    "PersistentStorage": {
-                        "Ref": "BrokerNodeStorage"
-                    },
-                    "LinuxOS": {
-                        "Ref": "LinuxOS"
-                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
-                    "KeyName": {
-                        "Ref": "KeyName"
-                    },
-                    "VpcSubnetId": {
-                        "Ref": "VpcSubnetId"
+                    "ClusterInfoHandle": {
+                        "Ref": "ClusterInfoHandle"
                     },
                     "ClusterName": {
                         "Ref": "ClusterName"
@@ -551,23 +550,54 @@
                     "InstanceProfile": {
                         "Ref": "InstanceProfile"
                     },
-                    "ClusterInfoHandle": {
-                        "Ref": "ClusterInfoHandle"
+                    "KeyPairName": {
+                        "Ref": "KeyPairName"
                     },
-                    "ScriptsURL": { 
-                        "Fn::Join": [ "/",
-                            [ 
-                                { "Fn::FindInMap": [ 
-                                    "AWSInfoRegionMap", 
-                                    { "Ref": "AWS::Region" }, 
-                                    "QuickStartS3URL" 
-                                ] },
-                                { "Ref": "QSS3BucketName" }, 
-                                { "Ref": "QSS3KeyPrefix" }, 
+                    "LinuxOS": {
+                        "Ref": "LinuxOS"
+                    },
+                    "NodeDesignation": "broker",
+                    "NodeSpotPrice": {
+                        "Ref": "BrokerNodeSpotPrice"
+                    },
+                    "NodeType": {
+                        "Ref": "BrokerNodeType"
+                    },
+                    "NumNodes": {
+                        "Ref": "NumBrokers"
+                    },
+                    "ParentStackName": {
+                        "Ref": "AWS::StackName"
+                    },
+                    "PersistentStorage": {
+                        "Ref": "BrokerNodeStorage"
+                    },
+                    "ScriptsURL": {
+                        "Fn::Join": [
+                            "/",
+                            [
+                                {
+                                    "Fn::FindInMap": [
+                                        "AWSInfoRegionMap",
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        "QuickStartS3URL"
+                                    ]
+                                },
+                                {
+                                    "Ref": "QSS3BucketName"
+                                },
+                                {
+                                    "Ref": "QSS3KeyPrefix"
+                                },
                                 "scripts"
                             ]
-                         ] 
-                     }
+                        ]
+                    },
+                    "VPCSubnetID": {
+                        "Ref": "VPCSubnetID"
+                    }
                 }
             }
         },
@@ -599,33 +629,11 @@
                     ]
                 },
                 "Parameters": {
-                    "ParentStackName": {
-                        "Ref": "AWS::StackName"
-                    },
-                    "NodeDesignation": "zookeeper",
-                    "NumNodes": {
-                        "Ref": "NumZookeepers"
-                    },
-                    "NodeType": {
-                        "Ref": "ZookeeperNodeType"
-                    },
-                    "NodeSpotPrice": {
-                        "Ref": "ZookeeperNodeSpotPrice"
-                    },
-                    "PersistentStorage": {
-                        "Ref": "ZookeeperNodeStorage"
-                    },
-                    "LinuxOS": {
-                        "Ref": "LinuxOS"
-                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
-                    "KeyName": {
-                        "Ref": "KeyName"
-                    },
-                    "VpcSubnetId": {
-                        "Ref": "VpcSubnetId"
+                    "ClusterInfoHandle": {
+                        "Ref": "ClusterInfoHandle"
                     },
                     "ClusterName": {
                         "Ref": "ClusterName"
@@ -642,22 +650,53 @@
                     "InstanceProfile": {
                         "Ref": "InstanceProfile"
                     },
-                    "ClusterInfoHandle": {
-                        "Ref": "ClusterInfoHandle"
+                    "KeyPairName": {
+                        "Ref": "KeyPairName"
                     },
-                    "ScriptsURL": { 
-                        "Fn::Join": [ "/",
-                            [ 
-                                { "Fn::FindInMap": [ 
-                                    "AWSInfoRegionMap", 
-                                    { "Ref": "AWS::Region" }, 
-                                    "QuickStartS3URL" 
-                                ] },
-                                { "Ref": "QSS3BucketName" }, 
-                                { "Ref": "QSS3KeyPrefix" }, 
+                    "LinuxOS": {
+                        "Ref": "LinuxOS"
+                    },
+                    "NodeDesignation": "zookeeper",
+                    "NodeSpotPrice": {
+                        "Ref": "ZookeeperNodeSpotPrice"
+                    },
+                    "NodeType": {
+                        "Ref": "ZookeeperNodeType"
+                    },
+                    "NumNodes": {
+                        "Ref": "NumZookeepers"
+                    },
+                    "ParentStackName": {
+                        "Ref": "AWS::StackName"
+                    },
+                    "PersistentStorage": {
+                        "Ref": "ZookeeperNodeStorage"
+                    },
+                    "ScriptsURL": {
+                        "Fn::Join": [
+                            "/",
+                            [
+                                {
+                                    "Fn::FindInMap": [
+                                        "AWSInfoRegionMap",
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        "QuickStartS3URL"
+                                    ]
+                                },
+                                {
+                                    "Ref": "QSS3BucketName"
+                                },
+                                {
+                                    "Ref": "QSS3KeyPrefix"
+                                },
                                 "scripts"
                             ]
-                         ] 
+                        ]
+                    },
+                    "VPCSubnetID": {
+                        "Ref": "VPCSubnetID"
                     }
                 }
             }
@@ -690,33 +729,11 @@
                     ]
                 },
                 "Parameters": {
-                    "ParentStackName": {
-                        "Ref": "AWS::StackName"
-                    },
-                    "NodeDesignation": "worker",
-                    "NumNodes": {
-                        "Ref": "NumWorkers"
-                    },
-                    "NodeType": {
-                        "Ref": "WorkerNodeType"
-                    },
-                    "NodeSpotPrice": {
-                        "Ref": "WorkerNodeSpotPrice"
-                    },
-                    "PersistentStorage": {
-                        "Ref": "WorkerNodeStorage"
-                    },
-                    "LinuxOS": {
-                        "Ref": "LinuxOS"
-                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
-                    "KeyName": {
-                        "Ref": "KeyName"
-                    },
-                    "VpcSubnetId": {
-                        "Ref": "VpcSubnetId"
+                    "ClusterInfoHandle": {
+                        "Ref": "ClusterInfoHandle"
                     },
                     "ClusterName": {
                         "Ref": "ClusterName"
@@ -733,22 +750,53 @@
                     "InstanceProfile": {
                         "Ref": "InstanceProfile"
                     },
-                    "ClusterInfoHandle": {
-                        "Ref": "ClusterInfoHandle"
+                    "KeyPairName": {
+                        "Ref": "KeyPairName"
                     },
-                    "ScriptsURL": { 
-                        "Fn::Join": [ "/",
-                            [ 
-                                { "Fn::FindInMap": [ 
-                                    "AWSInfoRegionMap", 
-                                    { "Ref": "AWS::Region" }, 
-                                    "QuickStartS3URL" 
-                                ] },
-                                { "Ref": "QSS3BucketName" }, 
-                                { "Ref": "QSS3KeyPrefix" }, 
+                    "LinuxOS": {
+                        "Ref": "LinuxOS"
+                    },
+                    "NodeDesignation": "worker",
+                    "NodeSpotPrice": {
+                        "Ref": "WorkerNodeSpotPrice"
+                    },
+                    "NodeType": {
+                        "Ref": "WorkerNodeType"
+                    },
+                    "NumNodes": {
+                        "Ref": "NumWorkers"
+                    },
+                    "ParentStackName": {
+                        "Ref": "AWS::StackName"
+                    },
+                    "PersistentStorage": {
+                        "Ref": "WorkerNodeStorage"
+                    },
+                    "ScriptsURL": {
+                        "Fn::Join": [
+                            "/",
+                            [
+                                {
+                                    "Fn::FindInMap": [
+                                        "AWSInfoRegionMap",
+                                        {
+                                            "Ref": "AWS::Region"
+                                        },
+                                        "QuickStartS3URL"
+                                    ]
+                                },
+                                {
+                                    "Ref": "QSS3BucketName"
+                                },
+                                {
+                                    "Ref": "QSS3KeyPrefix"
+                                },
                                 "scripts"
                             ]
-                         ] 
+                        ]
+                    },
+                    "VPCSubnetID": {
+                        "Ref": "VPCSubnetID"
                     }
                 }
             }
@@ -782,7 +830,7 @@
         },
         "Subnet": {
             "Value": {
-                "Ref": "VpcSubnetId"
+                "Ref": "VPCSubnetID"
             }
         }
     }
