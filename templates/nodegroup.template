@@ -329,7 +329,13 @@
                             "/tmp/sbin/compute-heap-opts": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "compute-heap-opts" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "compute-heap-opts"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -339,7 +345,13 @@
                             "/tmp/sbin/cp-deploy.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-deploy.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "cp-deploy.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -349,7 +361,13 @@
                             "/tmp/sbin/cp-install.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-install.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "cp-install.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -359,7 +377,13 @@
                             "/tmp/sbin/gen-cluster-hosts.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "gen-cluster-hosts.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "gen-cluster-hosts.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -369,7 +393,13 @@
                             "/tmp/sbin/prep-cp-instance.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "prep-cp-instance.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "prep-cp-instance.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -379,7 +409,13 @@
                             "/tmp/sbin/prepare-disks.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "prepare-disks.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "prepare-disks.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -389,7 +425,13 @@
                             "/tmp/sbin/post-cp-info.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "post-cp-info.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "post-cp-info.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -399,7 +441,13 @@
                             "/tmp/sbin/wait-for-child-resource.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-child-resource.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "wait-for-child-resource.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -409,7 +457,13 @@
                             "/tmp/sbin/wait-for-resource.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "wait-for-resource.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "wait-for-resource.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -419,7 +473,13 @@
                             "/tmp/sbin/cp-retrieve-connect-jars.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-connect-jars.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "cp-retrieve-connect-jars.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -429,7 +489,13 @@
                             "/tmp/cp-retrieve-scripts.sh": {
                                 "source": {
                                     "Fn::Join": [
-                                        "/", [ { "Ref": "ScriptsURL" }, "cp-retrieve-scripts.sh" ]
+                                        "/",
+                                        [
+                                            {
+                                                "Ref": "ScriptsURL"
+                                            },
+                                            "cp-retrieve-scripts.sh"
+                                        ]
                                     ]
                                 },
                                 "mode": "000755",
@@ -746,7 +812,11 @@
                                 "##   NOTE: as of Feb 2017, it appears that ami_launch_index is always correct)\n",
                                 "instance_id=$(curl -f http://instance-data/latest/meta-data/instance-id)\n",
                                 "ami_launch_index=$(curl -f http://instance-data/latest/meta-data/ami-launch-index)\n",
-                                "launch_node=$(grep -w `hostname` /tmp/", { "Ref": "NodeDesignation" }, "s | awk '{print $2}')\n",
+                                "launch_node=$(grep -w `hostname` /tmp/",
+                                {
+                                    "Ref": "NodeDesignation"
+                                },
+                                "s | awk '{print $2}')\n",
                                 "launch_index=${launch_node#*NODE}\n",
                                 "if [ -n \"$instance_id\" ] ; then\n",
                                 "  instance_tag=",
