@@ -129,8 +129,18 @@
             "MinValue": "0",
             "Type": "Number"
         },
-        "ScriptsURL": {
-            "Description": "Public location from which to download provisiong scripts",
+        "QSS3BucketName": {
+            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
+            "ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Default": "quickstart-reference",
+            "Description": "S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
+            "Type": "String"
+        },
+        "QSS3KeyPrefix": {
+            "AllowedPattern": "^[0-9a-zA-Z-]+(/[0-9a-zA-Z-]+)*$",
+            "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
+            "Default": "confluent/kafka/latest",
+            "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
             "Type": "String"
         },
         "VPCSubnetID": {
@@ -214,6 +224,64 @@
                 "AMZNLINUXHVM": "ami-f173cc91",
                 "CENTOS7HVM": "ami-d2c924b2",
                 "US1604HVM": "ami-a58d0dc5"
+            }
+        },
+        "AWSInfoRegionMap": {
+            "ap-northeast-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-northeast-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-south-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-southeast-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ap-southeast-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "ca-central-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-central-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-west-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "eu-west-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "sa-east-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-east-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-east-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-west-1": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
+            },
+            "us-west-2": {
+                "Partition": "aws",
+                "QuickStartS3URL": "https://s3.amazonaws.com"
             }
         },
         "ConfluentVersion2Vindex": {
@@ -332,9 +400,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "compute-heap-opts"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/compute-heap-opts"
                                         ]
                                     ]
                                 },
@@ -348,9 +428,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "cp-deploy.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/cp-deploy.sh"
                                         ]
                                     ]
                                 },
@@ -364,9 +456,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "cp-install.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/cp-install.sh"
                                         ]
                                     ]
                                 },
@@ -380,9 +484,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "gen-cluster-hosts.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/gen-cluster-hosts.sh"
                                         ]
                                     ]
                                 },
@@ -396,9 +512,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "prep-cp-instance.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/prep-cp-instance.sh"
                                         ]
                                     ]
                                 },
@@ -412,9 +540,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "prepare-disks.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/prepare-disks.sh"
                                         ]
                                     ]
                                 },
@@ -428,9 +568,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "post-cp-info.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/post-cp-info.sh"
                                         ]
                                     ]
                                 },
@@ -444,9 +596,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "wait-for-child-resource.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/wait-for-child-resource.sh"
                                         ]
                                     ]
                                 },
@@ -460,9 +624,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "wait-for-resource.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/wait-for-resource.sh"
                                         ]
                                     ]
                                 },
@@ -476,9 +652,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "cp-retrieve-connect-jars.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/cp-retrieve-connect-jars.sh"
                                         ]
                                     ]
                                 },
@@ -492,9 +680,21 @@
                                         "/",
                                         [
                                             {
-                                                "Ref": "ScriptsURL"
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
                                             },
-                                            "cp-retrieve-scripts.sh"
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/cp-retrieve-scripts.sh"
                                         ]
                                     ]
                                 },
@@ -678,7 +878,7 @@
                         }
                     ]
                 },
-                "KeyPairName": {
+                "KeyName": {
                     "Ref": "KeyPairName"
                 },
                 "AssociatePublicIpAddress": "true",

@@ -572,28 +572,11 @@
                     "PersistentStorage": {
                         "Ref": "BrokerNodeStorage"
                     },
-                    "ScriptsURL": {
-                        "Fn::Join": [
-                            "/",
-                            [
-                                {
-                                    "Fn::FindInMap": [
-                                        "AWSInfoRegionMap",
-                                        {
-                                            "Ref": "AWS::Region"
-                                        },
-                                        "QuickStartS3URL"
-                                    ]
-                                },
-                                {
-                                    "Ref": "QSS3BucketName"
-                                },
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts"
-                            ]
-                        ]
+                    "QSS3BucketName": {
+                        "Ref": "QSS3BucketName"
+                    },
+                    "QSS3KeyPrefix": {
+                        "Ref": "QSS3KeyPrefix"
                     },
                     "VPCSubnetID": {
                         "Ref": "VPCSubnetID"
@@ -672,28 +655,11 @@
                     "PersistentStorage": {
                         "Ref": "ZookeeperNodeStorage"
                     },
-                    "ScriptsURL": {
-                        "Fn::Join": [
-                            "/",
-                            [
-                                {
-                                    "Fn::FindInMap": [
-                                        "AWSInfoRegionMap",
-                                        {
-                                            "Ref": "AWS::Region"
-                                        },
-                                        "QuickStartS3URL"
-                                    ]
-                                },
-                                {
-                                    "Ref": "QSS3BucketName"
-                                },
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts"
-                            ]
-                        ]
+                    "QSS3BucketName": {
+                        "Ref": "QSS3BucketName"
+                    },
+                    "QSS3KeyPrefix": {
+                        "Ref": "QSS3KeyPrefix"
                     },
                     "VPCSubnetID": {
                         "Ref": "VPCSubnetID"
@@ -772,28 +738,11 @@
                     "PersistentStorage": {
                         "Ref": "WorkerNodeStorage"
                     },
-                    "ScriptsURL": {
-                        "Fn::Join": [
-                            "/",
-                            [
-                                {
-                                    "Fn::FindInMap": [
-                                        "AWSInfoRegionMap",
-                                        {
-                                            "Ref": "AWS::Region"
-                                        },
-                                        "QuickStartS3URL"
-                                    ]
-                                },
-                                {
-                                    "Ref": "QSS3BucketName"
-                                },
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts"
-                            ]
-                        ]
+                    "QSS3BucketName": {
+                        "Ref": "QSS3BucketName"
+                    },
+                    "QSS3KeyPrefix": {
+                        "Ref": "QSS3KeyPrefix"
                     },
                     "VPCSubnetID": {
                         "Ref": "VPCSubnetID"
