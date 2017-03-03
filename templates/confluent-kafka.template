@@ -828,33 +828,73 @@
                 "VpcId": {
                     "Ref": "VPCID"
                 },
-                "GroupDescription": "Zookeeper Security Group",
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "2181",
-                        "ToPort": "2181",
-                        "SourceSecurityGroupId": {
+                "GroupDescription": "Zookeeper Security Group"
+            }
+        },
+        "ZookeeperBrokerIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
                             "Ref": "BrokerSecurityGroup"
                         }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "2181",
-                        "ToPort": "2181",
-                        "SourceSecurityGroupId": {
-                            "Ref": "WorkerSecurityGroup"
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "2181",
+                "ToPort": "2181",
+                "SourceSecurityGroupId": {
+                    "Ref": "BrokerSecurityGroup"
+                }
+            }
+        },
+        "ZookeeperWorkerIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
                         }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "2181",
-                        "ToPort": "2181",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "2181",
+                "ToPort": "2181",
+                "SourceSecurityGroupId": {
+                    "Ref": "WorkerSecurityGroup"
+                }
+            }
+        },
+        "ZookeeperRemoteIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
                         }
-                    }
-                ]
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "2181",
+                "ToPort": "2181",
+                "CidrIp": {
+                    "Ref": "RemoteAccessCIDR"
+                }
             }
         },
         "WorkerSecurityGroup": {
