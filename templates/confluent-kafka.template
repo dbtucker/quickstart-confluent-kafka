@@ -617,7 +617,12 @@
                         "Ref": "QSS3KeyPrefix"
                     },
                     "SubnetID": {
-                        "Ref": "SubnetID"
+                        "Fn::Join": [
+                            ",",
+                            {
+                                "Ref": "SubnetID"
+                            }
+                        ]
                     }
                 }
             }
@@ -703,7 +708,12 @@
                         "Ref": "QSS3KeyPrefix"
                     },
                     "SubnetID": {
-                        "Ref": "SubnetID"
+                        "Fn::Join": [
+                            ",",
+                            {
+                                "Ref": "SubnetID"
+                            }
+                        ]
                     }
                 }
             }
@@ -789,7 +799,12 @@
                         "Ref": "QSS3KeyPrefix"
                     },
                     "SubnetID": {
-                        "Ref": "SubnetID"
+                        "Fn::Join": [
+                            ",",
+                            {
+                                "Ref": "SubnetID"
+                            }
+                        ]
                     }
                 }
             }
