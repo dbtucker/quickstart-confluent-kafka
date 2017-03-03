@@ -9,7 +9,9 @@
                         "default": "Network Configuration"
                     },
                     "Parameters": [
-                        "VPCSubnetID"
+                        "VPCID",
+                        "SubnetID",
+                        "RemoteAccessCIDR"
                     ]
                 },
                 {
@@ -28,7 +30,7 @@
                     },
                     "Parameters": [
                         "NumBrokers",
-                        "BrokerNodeType",
+                        "BrokerNodeInstanceType",
                         "BrokerNodeStorage",
                         "BrokerNodeSpotPrice"
                     ]
@@ -39,7 +41,7 @@
                     },
                     "Parameters": [
                         "NumZookeepers",
-                        "ZookeeperNodeType",
+                        "ZookeeperNodeInstanceType",
                         "ZookeeperNodeStorage",
                         "ZookeeperNodeSpotPrice"
                     ]
@@ -50,7 +52,7 @@
                     },
                     "Parameters": [
                         "NumWorkers",
-                        "WorkerNodeType",
+                        "WorkerNodeInstanceType",
                         "WorkerNodeStorage",
                         "WorkerNodeSpotPrice"
                     ]
@@ -78,16 +80,16 @@
             ],
             "ParameterLabels": {
                 "BootDiskSize": {
-                    "default": "Boot Disk Capacity (GB)"
+                    "default": "Boot Disk Capacity (GiB)"
+                },
+                "BrokerNodeInstanceType": {
+                    "default": "Instance Type"
                 },
                 "BrokerNodeSpotPrice": {
                     "default": "Spot Price (optional)"
                 },
                 "BrokerNodeStorage": {
                     "default": "Persistent Storage"
-                },
-                "BrokerNodeType": {
-                    "default": "Instance Type"
                 },
                 "ClusterName": {
                     "default": "Cluster Name"
@@ -122,8 +124,14 @@
                 "QSS3KeyPrefix": {
                     "default": "Quick Start S3 Key Prefix"
                 },
-                "VPCSubnetID": {
-                    "default": "VPC Subnet"
+                "RemoteAccessCIDR": {
+                    "default": "Allowed External Access CIDR"
+                },
+                "SubnetID": {
+                    "default": "Subnet ID"
+                },
+                "WorkerNodeInstanceType": {
+                    "default": "Instance Type"
                 },
                 "WorkerNodeSpotPrice": {
                     "default": "Spot Price (optional)"
@@ -131,7 +139,7 @@
                 "WorkerNodeStorage": {
                     "default": "Persistent Storage"
                 },
-                "WorkerNodeType": {
+                "ZookeeperNodeInstanceType": {
                     "default": "Instance Type"
                 },
                 "ZookeeperNodeSpotPrice": {
@@ -139,9 +147,6 @@
                 },
                 "ZookeeperNodeStorage": {
                     "default": "Persistent Storage"
-                },
-                "ZookeeperNodeType": {
-                    "default": "Instance Type"
                 }
             }
         }
@@ -155,22 +160,7 @@
             "MinValue": "8",
             "Type": "Number"
         },
-        "BrokerNodeSpotPrice": {
-            "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
-            "ConstraintDescription": "Must be decimal numeric value",
-            "Default": "0.00",
-            "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
-            "Type": "String"
-        },
-        "BrokerNodeStorage": {
-            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
-            "Default": "0",
-            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
-            "MinValue": "0",
-            "Type": "Number"
-        },
-        "BrokerNodeType": {
+        "BrokerNodeInstanceType": {
             "AllowedValues": [
                 "m3.large",
                 "m3.xlarge",
@@ -192,6 +182,21 @@
             "Default": "m4.xlarge",
             "Description": "Instance Type for Kafka brokers; select m3/m4 or i2 instance types for us-west-1 and sa-east-1",
             "Type": "String"
+        },
+        "BrokerNodeSpotPrice": {
+            "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
+            "ConstraintDescription": "Must be decimal numeric value",
+            "Default": "0.00",
+            "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
+            "Type": "String"
+        },
+        "BrokerNodeStorage": {
+            "ConstraintDescription": "No more than 1024 GiB per device (4 TiB per node).",
+            "Default": "0",
+            "Description": "Allocated EBS storage for each block device (in GiB; 4 devs per node); 0 indicates ephemeral storage only",
+            "MaxValue": "1024",
+            "MinValue": "0",
+            "Type": "Number"
         },
         "ClusterName": {
             "AllowedPattern": "([A-Za-z]{1}[0-9A-Za-z_-]*)",
@@ -283,28 +288,21 @@
             "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with forward slash (/) because they are automatically appended.",
             "Type": "String"
         },
-        "VPCSubnetID": {
-            "AllowedPattern": "subnet-[0-9a-f]{8,}",
-            "ConstraintDescription": "must be a valid AWS subnet (e.g. subnet-4b8d329f)",
-            "Description": "VPC Subnet for cluster deployment; VPC must exist with proper configuration for Confluent cluster access (internal and external)",
+        "RemoteAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "Allowed CIDR block for external access to cluster nodes",
             "Type": "String"
         },
-        "WorkerNodeSpotPrice": {
-            "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
-            "ConstraintDescription": "Must be decimal numeric value",
-            "Default": "0.00",
-            "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
-            "Type": "String"
+        "SubnetID": {
+            "Description": "ID of the VPC subnet for the cluster deployment (e.g. subnet-4b8d329f); VPC must exist with proper configuration for Confluent cluster access (internal and external)",
+            "Type": "AWS::EC2::Subnet::Id"
         },
-        "WorkerNodeStorage": {
-            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
-            "Default": "0",
-            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
-            "MinValue": "0",
-            "Type": "Number"
+        "VPCID": {
+            "Description": "ID of the VPC (e.g. vpc-0343606e)",
+            "Type": "AWS::EC2::VPC::Id"
         },
-        "WorkerNodeType": {
+        "WorkerNodeInstanceType": {
             "AllowedValues": [
                 "m3.large",
                 "m3.xlarge",
@@ -326,22 +324,22 @@
             "Description": "Instance Type for Kafka Connect workers; select m3/m4 or i2 instance types for us-west-1 and sa-east-1",
             "Type": "String"
         },
-        "ZookeeperNodeSpotPrice": {
+        "WorkerNodeSpotPrice": {
             "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
             "ConstraintDescription": "Must be decimal numeric value",
             "Default": "0.00",
             "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
             "Type": "String"
         },
-        "ZookeeperNodeStorage": {
-            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
+        "WorkerNodeStorage": {
+            "ConstraintDescription": "No more than 1024 GiB per device (4 TiB per node).",
             "Default": "0",
-            "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
+            "Description": "Allocated EBS storage for each block device (in GiB; 4 devs per node); 0 indicates ephemeral storage only",
             "MaxValue": "1024",
             "MinValue": "0",
             "Type": "Number"
         },
-        "ZookeeperNodeType": {
+        "ZookeeperNodeInstanceType": {
             "AllowedValues": [
                 "m3.medium",
                 "m3.large",
@@ -354,6 +352,43 @@
             "Default": "m4.large",
             "Description": "Instance Type for Zookeeper servers; select m3/m4 for us-west-1 and sa-east-1",
             "Type": "String"
+        },
+        "ZookeeperNodeSpotPrice": {
+            "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
+            "ConstraintDescription": "Must be decimal numeric value",
+            "Default": "0.00",
+            "Description": "Spot Price to bid for requested instances (0.00 will result in using on-demand instances)",
+            "Type": "String"
+        },
+        "ZookeeperNodeStorage": {
+            "ConstraintDescription": "No more than 1024 GiB per device (4 TiB per node).",
+            "Default": "0",
+            "Description": "Allocated EBS storage for each block device (in GiB; 4 devs per node); 0 indicates ephemeral storage only",
+            "MaxValue": "1024",
+            "MinValue": "0",
+            "Type": "Number"
+        }
+    },
+    "Rules": {
+        "SubnetsInVPC": {
+            "Assertions": [
+                {
+                    "Assert": {
+                        "Fn::EachMemberIn": [
+                            {
+                                "Fn::ValueOfAll": [
+                                    "AWS::EC2::Subnet::Id",
+                                    "VpcId"
+                                ]
+                            },
+                            {
+                                "Fn::RefAll": "AWS::EC2::VPC::Id"
+                            }
+                        ]
+                    },
+                    "AssertDescription": "All subnets must in the VPC"
+                }
+            ]
         }
     },
     "Mappings": {
@@ -557,11 +592,14 @@
                         "Ref": "LinuxOSAMI"
                     },
                     "NodeDesignation": "broker",
+                    "NodeInstanceType": {
+                        "Ref": "BrokerNodeInstanceType"
+                    },
+                    "NodeSecurityGroup": {
+                        "Ref" : "BrokerSecurityGroup"
+                    },
                     "NodeSpotPrice": {
                         "Ref": "BrokerNodeSpotPrice"
-                    },
-                    "NodeType": {
-                        "Ref": "BrokerNodeType"
                     },
                     "NumNodes": {
                         "Ref": "NumBrokers"
@@ -578,8 +616,8 @@
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
                     },
-                    "VPCSubnetID": {
-                        "Ref": "VPCSubnetID"
+                    "SubnetID": {
+                        "Ref": "SubnetID"
                     }
                 }
             }
@@ -640,11 +678,14 @@
                         "Ref": "LinuxOSAMI"
                     },
                     "NodeDesignation": "zookeeper",
+                    "NodeInstanceType": {
+                        "Ref": "ZookeeperNodeInstanceType"
+                    },
+                    "NodeSecurityGroup": {
+                        "Ref" : "ZookeeperSecurityGroup"
+                    },
                     "NodeSpotPrice": {
                         "Ref": "ZookeeperNodeSpotPrice"
-                    },
-                    "NodeType": {
-                        "Ref": "ZookeeperNodeType"
                     },
                     "NumNodes": {
                         "Ref": "NumZookeepers"
@@ -661,8 +702,8 @@
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
                     },
-                    "VPCSubnetID": {
-                        "Ref": "VPCSubnetID"
+                    "SubnetID": {
+                        "Ref": "SubnetID"
                     }
                 }
             }
@@ -723,11 +764,14 @@
                         "Ref": "LinuxOSAMI"
                     },
                     "NodeDesignation": "worker",
+                    "NodeInstanceType": {
+                        "Ref": "WorkerNodeInstanceType"
+                    },
+                    "NodeSecurityGroup": {
+                        "Ref" : "WorkerSecurityGroup"
+                    },
                     "NodeSpotPrice": {
                         "Ref": "WorkerNodeSpotPrice"
-                    },
-                    "NodeType": {
-                        "Ref": "WorkerNodeType"
                     },
                     "NumNodes": {
                         "Ref": "NumWorkers"
@@ -744,10 +788,93 @@
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
                     },
-                    "VPCSubnetID": {
-                        "Ref": "VPCSubnetID"
+                    "SubnetID": {
+                        "Ref": "SubnetID"
                     }
                 }
+            }
+        },
+        "BrokerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "GroupDescription": "Kafka Brokers Security Group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "9092",
+                        "ToPort": "9093",
+                        "SourceSecurityGroupId": {
+                            "Ref": "WorkerSecurityGroup"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "9092",
+                        "ToPort": "9093",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    }
+                ]
+            }
+        },
+        "ZookeeperSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Condition": "IndependentZookeepers",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "GroupDescription": "Zookeeper Security Group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "2181",
+                        "ToPort": "2181",
+                        "SourceSecurityGroupId": {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "2181",
+                        "ToPort": "2181",
+                        "SourceSecurityGroupId": {
+                            "Ref": "WorkerSecurityGroup"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "2181",
+                        "ToPort": "2181",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    }
+                ]
+            }
+        },
+        "WorkerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Condition": "IndependentWorkers",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPCID"
+                },
+                "GroupDescription": "Kafka Workers Security Group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "8081",
+                        "ToPort": "8083",
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        }
+                    }
+                ]
             }
         },
         "ClusterInfoHandle": {
@@ -777,9 +904,9 @@
                 ]
             }
         },
-        "Subnet": {
+        "SubnetID": {
             "Value": {
-                "Ref": "VPCSubnetID"
+                "Ref": "SubnetID"
             }
         }
     }

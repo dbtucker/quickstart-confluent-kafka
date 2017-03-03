@@ -30,7 +30,7 @@
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "BrokerNodeType",
+        "ParameterKey": "BrokerNodeInstanceType",
         "ParameterValue": "m4.xlarge",
         "UsePreviousValue": false
     },
@@ -45,7 +45,7 @@
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "ZookeeperNodeType",
+        "ParameterKey": "ZookeeperNodeInstanceType",
         "ParameterValue": "m3.medium",
         "UsePreviousValue": false
     },
@@ -60,7 +60,7 @@
         "UsePreviousValue": false
     },
     {
-        "ParameterKey": "WorkerNodeType",
+        "ParameterKey": "WorkerNodeInstanceType",
         "ParameterValue": "m4.2xlarge",
         "UsePreviousValue": false
     },
