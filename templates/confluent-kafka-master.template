@@ -392,7 +392,7 @@
                 "m4.2xlarge"
             ],
             "ConstraintDescription": "Must be a valid EC2 instance type.",
-            "Default": "m3.large",
+            "Default": "m4.large",
             "Description": "Instance Type for Zookeeper servers; select m3/m4 for us-west-1 and sa-east-1",
             "Type": "String"
         }
