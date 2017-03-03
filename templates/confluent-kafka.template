@@ -295,8 +295,8 @@
             "Type": "String"
         },
         "SubnetID": {
-            "Description": "ID of the VPC subnet for the cluster deployment (e.g. subnet-4b8d329f); VPC must exist with proper configuration for Confluent cluster access (internal and external)",
-            "Type": "AWS::EC2::Subnet::Id"
+            "Description": "Comma separated list of VPC subnet IDs for the cluster deployment (e.g. subnet-4b8d329f,subnet-bd73afc8); VPC must exist with proper configuration for Confluent cluster access (internal and external)",
+            "Type": "List<AWS::EC2::Subnet::Id>"
         },
         "VPCID": {
             "Description": "ID of the VPC (e.g. vpc-0343606e)",

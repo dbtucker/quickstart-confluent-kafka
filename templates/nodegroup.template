@@ -99,9 +99,8 @@
             "Type": "String"
         },
         "NodeSecurityGroup": {
-            "Default": "",
-            "Description": "ID of the Member Security Group (e.g. sg-7f16e910)",
-            "Type": "String"
+            "Description": "Comma separated list of security groups for the members of the cluster (e.g. sg-7f16e910,sg-4be93ca2); The security groups must be in the same VPC as the subnets",
+            "Type": "List<AWS::EC2::SecurityGroup::Id>"
         },
         "NodeSpotPrice": {
             "AllowedPattern": "([0-9]{1}[.]{1}[0-9]{2})",
@@ -144,8 +143,8 @@
             "Type": "String"
         },
         "SubnetID": {
-            "Description": "ID of the VPC subnet for the cluster deployment (e.g. subnet-4b8d329f); VPC must exist with proper configuration for Confluent cluster access (internal and external)",
-            "Type": "AWS::EC2::Subnet::Id"
+            "Description": "Comma separated list of VPC subnet IDs for the cluster deployment (e.g. subnet-4b8d329f,subnet-bd73afc8); VPC must exist with proper configuration for Confluent cluster access (internal and external)and the subnets must be in the same VPC as the security groups",
+            "Type": "List<AWS::EC2::Subnet::Id>"
         }
     },
     "Mappings": {
@@ -853,15 +852,7 @@
                 },
                 "SecurityGroups": [
                     {
-                        "Fn::If": [
-                            "UseDefaultSG",
-                            {
-                                "Ref": "AWS::NoValue"
-                            },
-                            {
-                                "Ref": "NodeSecurityGroup"
-                            }
-                        ]
+                        "Ref": "NodeSecurityGroup"
                     }
                 ],
                 "InstanceType": {
