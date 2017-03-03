@@ -1,0 +1,98 @@
+[
+    {
+        "ParameterKey": "AvailabilityZones",
+        "ParameterValue": "$[alfred_getaz_2]"
+    },
+    {
+        "ParameterKey": "BootDiskSize",
+        "ParameterValue": "24"
+    },
+    {
+        "ParameterKey": "BrokerNodeSpotPrice",
+        "ParameterValue": "0.00"
+    },
+    {
+        "ParameterKey": "BrokerNodeStorage",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "BrokerNodeType",
+        "ParameterValue": "m4.xlarge"
+    },
+    {
+        "ParameterKey": "ClusterName",
+        "ParameterValue": "awsqs"
+    },
+    {
+        "ParameterKey": "ConfluentEdition",
+        "ParameterValue": "Confluent Enterprise"
+    },
+    {
+        "ParameterKey": "ConfluentSecurity",
+        "ParameterValue": "Disabled"
+    },
+    {
+        "ParameterKey": "ConfluentVersion",
+        "ParameterValue": "3.1.1"
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "$[alfred_getkeypair]"
+    },
+    {
+        "ParameterKey": "LinuxOSAMI",
+        "ParameterValue": "CentOS-7-HVM"
+    },
+    {
+        "ParameterKey": "NumBrokers",
+        "ParameterValue": "3"
+    },
+    {
+        "ParameterKey": "NumWorkers",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "NumZookeepers",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "PublicSubnet1CIDR",
+        "ParameterValue": "10.0.128.0/20"
+    },
+    {
+        "ParameterKey": "PublicSubnet2CIDR",
+        "ParameterValue": "10.0.144.0/20"
+    },
+    {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "VPCCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "WorkerNodeSpotPrice",
+        "ParameterValue": "0.00"
+    },
+    {
+        "ParameterKey": "WorkerNodeStorage",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "WorkerNodeType",
+        "ParameterValue": "m4.xlarge"
+    },
+    {
+        "ParameterKey": "ZookeeperNodeSpotPrice",
+        "ParameterValue": "0.00"
+    },
+    {
+        "ParameterKey": "ZookeeperNodeStorage",
+        "ParameterValue": "0"
+    },
+    {
+        "ParameterKey": "ZookeeperNodeType",
+        "ParameterValue": "m4.large"
+    }
+]
