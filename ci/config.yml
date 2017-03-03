@@ -22,3 +22,6 @@ tests:
   test1:
     parameter_input: enterprise-3.1.1-brokersonly-ondemand-ephemeral-centos7.json
     template_file: confluent-kafka-master.template
+  test2:
+    parameter_input: enterprise-3.1.1-brokersworkerszookepers-ondemand-ephemeral-centos7.json
+    template_file: confluent-kafka-master.template
