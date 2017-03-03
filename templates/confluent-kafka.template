@@ -855,6 +855,7 @@
         },
         "ZookeeperWorkerIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
+            "Condition": "IndependentWorkers",
             "Properties": {
                 "GroupId": {
                     "Fn::If": [
