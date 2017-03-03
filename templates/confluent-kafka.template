@@ -919,17 +919,29 @@
                 "VpcId": {
                     "Ref": "VPCID"
                 },
-                "GroupDescription": "Kafka Workers Security Group",
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "8081",
-                        "ToPort": "8083",
-                        "CidrIp": {
-                            "Ref": "RemoteAccessCIDR"
+                "GroupDescription": "Kafka Workers Security Group"
+            }
+        },
+        "WorkerSGRemoteIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentWorkers",
+                        {
+                            "Ref": "WorkerSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
                         }
-                    }
-                ]
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8081",
+                "ToPort": "8083",
+                "CidrIp": {
+                    "Ref": "RemoteAccessCIDR"
+                }
             }
         },
         "ClusterInfoHandle": {
