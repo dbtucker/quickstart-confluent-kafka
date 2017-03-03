@@ -20,5 +20,5 @@ global:
   reporting: true
 tests:
   test1:
-    parameter_input: enterprise-3.1.1-ondemand-ephemeral-centos7.json
+    parameter_input: enterprise-3.1.1-brokersonly-ondemand-ephemeral-centos7.json
     template_file: confluent-kafka-master.template
