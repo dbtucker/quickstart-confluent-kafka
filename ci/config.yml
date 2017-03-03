@@ -1,5 +1,5 @@
 global:
-  marketplace-ami: false
+  marketplace-ami: true
   owner: quickstart-eng@amazon.com
   qsname: quickstart-confluent-kafka
   regions:
@@ -11,17 +11,14 @@ global:
     - ca-central-1
     - eu-central-1
     - eu-west-1
+    - eu-west-2
     - sa-east-1
     - us-east-1
     - us-east-2
     - us-west-1
     - us-west-2
   reporting: true
- 
 tests:
-  quickstart-confluent-kafkat1:
-    parameter_input: quickstart-confluent-kafka-example-params1.json
-    template_file: quickstart-confluent-kafka-example1.template
-  quickstart-confluent-kafkat2:
-    parameter_input: quickstart-confluent-kafka-example-params2.json
-    template_file: quickstart-confluent-kafka-example2.template
+  test1:
+    parameter_input: enterprise-3.1.1-ondemand-ephemeral-centos7.json
+    template_file: confluent-kafka-master.template
