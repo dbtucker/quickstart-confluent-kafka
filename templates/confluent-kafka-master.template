@@ -584,7 +584,7 @@
                     "QSS3KeyPrefix": {
                         "Ref": "QSS3KeyPrefix"
                     },
-                    "VpcSubnetId": {
+                    "VPCSubnetID": {
                         "Fn::GetAtt": [
                             "VPCStack",
                             "Outputs.PublicSubnet1ID"
