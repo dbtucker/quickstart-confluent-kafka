@@ -333,14 +333,6 @@
                 },
                 "0.00"
             ]
-        },
-        "UseDefaultSG": {
-            "Fn::Equals": [
-                {
-                    "Ref": "NodeSecurityGroup"
-                },
-                ""
-            ]
         }
     },
     "Resources": {
