@@ -354,11 +354,9 @@
         "Nodes": {
             "Type": "AWS::AutoScaling::AutoScalingGroup",
             "Properties": {
-                "VPCZoneIdentifier": [
-                    {
-                        "Ref": "SubnetID"
-                    }
-                ],
+                "VPCZoneIdentifier": {
+                    "Ref": "SubnetID"
+                },
                 "LaunchConfigurationName": {
                     "Ref": "NodeLaunchConfig"
                 },
