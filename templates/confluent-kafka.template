@@ -988,7 +988,12 @@
         },
         "SubnetID": {
             "Value": {
-                "Ref": "SubnetID"
+                "Fn::Join": [
+                    ",",
+                    {
+                        "Ref": "SubnetID"
+                    }
+                ]
             }
         }
     }
