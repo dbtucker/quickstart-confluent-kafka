@@ -634,62 +634,6 @@
                                 "mode": "000755",
                                 "owner": "root",
                                 "group": "root"
-                            },
-                            "/tmp/sbin/cp-retrieve-connect-jars.sh": {
-                                "source": {
-                                    "Fn::Join": [
-                                        "/",
-                                        [
-                                            {
-                                                "Fn::FindInMap": [
-                                                    "AWSInfoRegionMap",
-                                                    {
-                                                        "Ref": "AWS::Region"
-                                                    },
-                                                    "QuickStartS3URL"
-                                                ]
-                                            },
-                                            {
-                                                "Ref": "QSS3BucketName"
-                                            },
-                                            {
-                                                "Ref": "QSS3KeyPrefix"
-                                            },
-                                            "scripts/cp-retrieve-connect-jars.sh"
-                                        ]
-                                    ]
-                                },
-                                "mode": "000755",
-                                "owner": "root",
-                                "group": "root"
-                            },
-                            "/tmp/cp-retrieve-scripts.sh": {
-                                "source": {
-                                    "Fn::Join": [
-                                        "/",
-                                        [
-                                            {
-                                                "Fn::FindInMap": [
-                                                    "AWSInfoRegionMap",
-                                                    {
-                                                        "Ref": "AWS::Region"
-                                                    },
-                                                    "QuickStartS3URL"
-                                                ]
-                                            },
-                                            {
-                                                "Ref": "QSS3BucketName"
-                                            },
-                                            {
-                                                "Ref": "QSS3KeyPrefix"
-                                            },
-                                            "scripts/cp-retrieve-scripts.sh"
-                                        ]
-                                    ]
-                                },
-                                "mode": "000755",
-                                "owner": "root",
-                                "group": "root"
                             }
                         }
                     }
