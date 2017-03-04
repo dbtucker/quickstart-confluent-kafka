@@ -842,11 +842,9 @@
                         }
                     ]
                 },
-                "SecurityGroups": [
-                    {
-                        "Ref": "NodeSecurityGroup"
-                    }
-                ],
+                "SecurityGroups": {
+                    "Ref": "NodeSecurityGroup"
+                },
                 "InstanceType": {
                     "Ref": "NodeInstanceType"
                 },
