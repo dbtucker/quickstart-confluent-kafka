@@ -828,7 +828,7 @@
                 ]
             }
         },
-        "BrokerSGWorkerIngress": {
+        "BrokerWorkerIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -860,7 +860,67 @@
                 "GroupDescription": "Zookeeper Security Group"
             }
         },
-        "ZookeeperSGBrokerIngress": {
+        "ZookeeperIngressTcp2888": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "2888",
+                "ToPort": "2888",
+                "SourceSecurityGroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                }
+            }
+        },
+        "ZookeeperIngressTcp3888": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "3888",
+                "ToPort": "3888",
+                "SourceSecurityGroupId": {
+                    "Fn::If": [
+                        "IndependentZookeepers",
+                        {
+                            "Ref": "ZookeeperSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                }
+            }
+        },
+        "ZookeeperBrokerIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -882,7 +942,7 @@
                 }
             }
         },
-        "ZookeeperSGWorkerIngress": {
+        "ZookeeperWorkerIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Condition": "IndependentWorkers",
             "Properties": {
@@ -905,7 +965,7 @@
                 }
             }
         },
-        "ZookeeperSGRemoteIngress": {
+        "ZookeeperRemoteIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -937,7 +997,7 @@
                 "GroupDescription": "Kafka Workers Security Group"
             }
         },
-        "WorkerSGRemoteIngress": {
+        "WorkerRemoteIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
