@@ -11,7 +11,8 @@
                     "Parameters": [
                         "VPCID",
                         "SubnetID",
-                        "RemoteAccessCIDR"
+                        "RemoteAccessCIDR",
+                        "SSHAccessCIDR"
                     ]
                 },
                 {
@@ -126,6 +127,9 @@
                 },
                 "RemoteAccessCIDR": {
                     "default": "Allowed External Access CIDR"
+                },
+                "SSHAccessCIDR": {
+                    "default": "Allowed SSH Access CIDR"
                 },
                 "SubnetID": {
                     "default": "Subnet ID"
@@ -292,6 +296,12 @@
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
             "Description": "Allowed CIDR block for external access to cluster nodes",
+            "Type": "String"
+        },
+        "SSHAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "Allowed CIDR block for SSH access to cluster nodes",
             "Type": "String"
         },
         "SubnetID": {
@@ -824,6 +834,14 @@
                         "CidrIp": {
                             "Ref": "RemoteAccessCIDR"
                         }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "SSHAccessCIDR"
+                        }
                     }
                 ]
             }
@@ -857,7 +875,17 @@
                 "VpcId": {
                     "Ref": "VPCID"
                 },
-                "GroupDescription": "Zookeeper Security Group"
+                "GroupDescription": "Zookeeper Security Group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "SSHAccessCIDR"
+                        }
+                    }
+                ]
             }
         },
         "ZookeeperIngressTcp2888": {
@@ -994,7 +1022,17 @@
                 "VpcId": {
                     "Ref": "VPCID"
                 },
-                "GroupDescription": "Kafka Workers Security Group"
+                "GroupDescription": "Kafka Workers Security Group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "SSHAccessCIDR"
+                        }
+                    }
+                ]
             }
         },
         "WorkerRemoteIngress": {

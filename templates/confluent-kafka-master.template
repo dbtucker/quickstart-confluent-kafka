@@ -13,7 +13,8 @@
                         "VPCCIDR",
                         "PublicSubnet1CIDR",
                         "PublicSubnet2CIDR",
-                        "RemoteAccessCIDR"
+                        "RemoteAccessCIDR",
+                        "SSHAccessCIDR"
                     ]
                 },
                 {
@@ -137,6 +138,9 @@
                 },
                 "RemoteAccessCIDR": {
                     "default": "Allowed External Access CIDR"
+                },
+                "SSHAccessCIDR": {
+                    "default": "Allowed SSH Access CIDR"
                 },
                 "VPCCIDR": {
                     "default": "VPC CIDR"
@@ -321,6 +325,12 @@
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
             "Description": "Allowed CIDR block for external access to cluster nodes",
+            "Type": "String"
+        },
+        "SSHAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "Allowed CIDR block for SSH access to cluster nodes",
             "Type": "String"
         },
         "VPCCIDR": {
