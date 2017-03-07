@@ -597,6 +597,9 @@
                     "RemoteAccessCIDR": {
                         "Ref": "RemoteAccessCIDR"
                     },
+                    "SSHAccessCIDR": {
+                        "Ref": "SSHAccessCIDR"
+                    },
                     "SubnetID": {
                         "Fn::Join": [
                             ",",
