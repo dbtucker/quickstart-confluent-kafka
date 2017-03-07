@@ -32,13 +32,16 @@
 #	ZookeeperNodes	(/tmp/zookeepers)
 #	WorkerNodes	(/tmp/workers)
 #
-# The complete list of hosts for this stack is /tmp/cphosts
+# The complete list of hosts for this stack is saved
+# to CP_HOSTS_FILE (default is /tmp/cphosts)
 #
 # Zookeeper nodes and Worker nodes are optional.  If no instances for
 # those autoscaling groups are found, the node list will default to
 # the list from /tmp/brokers.
 
 murl_top=http://instance-data/latest/meta-data
+
+CP_HOSTS_FILE=${CP_HOSTS_FILE:-/tmp/cphosts}
 
 ThisInstance=$(curl -f $murl_top/instance-id 2> /dev/null)
 if [ -z "$ThisInstance" ] ; then
@@ -86,10 +89,10 @@ aws ec2 describe-instances --output text --region $ThisRegion \
   --query 'Reservations[].Instances[].[PrivateDnsName,InstanceId,LaunchTime,AmiLaunchIndex,KeyName,Tags[?Key == `aws:autoscaling:groupName`] | [0].Value ] ' \
   | grep -w "$ThisStack" | sort -k 3,4 \
   | awk '{split ($1,fqdn,"."); print fqdn[1]" "$2" "$3" "$4" "$5" "$6}' \
-  > /tmp/cphosts
+  > ${CP_HOSTS_FILE}
 
 
-#	cat /tmp/cphosts
+#	cat ${CP_HOSTS_FILE}
 
 # Now we have the hosts from this stack ... divide them into the 
 # our node roles.
@@ -98,7 +101,7 @@ aws ec2 describe-instances --output text --region $ThisRegion \
 # Since this script only runs on nodes we've deployed via Cloudformation,
 # this should never happend ... but let's be REALLY SURE we have nodes
 
-total_nodes=$(cat /tmp/cphosts | wc -l)
+total_nodes=$(cat ${CP_HOSTS_FILE} | wc -l)
 if [ ${total_nodes:-0} -lt 1 ] ; then
 	echo "No nodes found in  Cloudformation Stack; aborting script"
 	exit 1
@@ -108,27 +111,27 @@ fi
 # The different models will have slightly different labels for the 
 # nodes associated with each group ... but it's simple to handle both cases.
 #
-grep -q -e "-BrokerNodes-" -e "-BrokerStack-" /tmp/cphosts
+grep -q -e "-BrokerNodes-" -e "-BrokerStack-" ${CP_HOSTS_FILE}
 if [ $? -eq 0 ] ; then
-	grep -e "-BrokerNodes-" -e "-BrokerStack-" /tmp/cphosts \
+	grep -e "-BrokerNodes-" -e "-BrokerStack-" ${CP_HOSTS_FILE} \
 		| awk '{print $1" BROKERNODE"NR-1" "$2" "$3" "$4}' > /tmp/brokers
 else
-	cp /tmp/cphosts /tmp/brokers
+	cp ${CP_HOSTS_FILE} /tmp/brokers
 fi
 
-grep -q -e "-ZookeeperNodes-" -e "-ZookeeperStack-" /tmp/cphosts
+grep -q -e "-ZookeeperNodes-" -e "-ZookeeperStack-" ${CP_HOSTS_FILE}
 if [ $? -eq 0 ] ; then
-	grep -e "-ZookeeperNodes-" -e "-ZookeeperStack-" /tmp/cphosts \
+	grep -e "-ZookeeperNodes-" -e "-ZookeeperStack-" ${CP_HOSTS_FILE} \
 		| awk '{print $1" ZOOKEEPERNODE"NR-1" "$2" "$3" "$4}' > /tmp/zookeepers
 else
 	head -3 /tmp/brokers > /tmp/zookeepers
 fi
 
-grep -q -e "-WorkerNodes-" -e "-WorkerStack-" /tmp/cphosts
+grep -q -e "-WorkerNodes-" -e "-WorkerStack-" ${CP_HOSTS_FILE}
 if [ $? -eq 0 ] ; then
-	grep -e "-WorkerNodes-" -e "-WorkerStack-" /tmp/cphosts \
+	grep -e "-WorkerNodes-" -e "-WorkerStack-" ${CP_HOSTS_FILE} \
 		| awk '{print $1" WORKERNODE"NR-1" "$2" "$3" "$4}' > /tmp/workers
 else
-	cp /tmp/cphosts /tmp/workers
+	cp ${CP_HOSTS_FILE} /tmp/workers
 fi
 

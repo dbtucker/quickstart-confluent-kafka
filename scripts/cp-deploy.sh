@@ -262,6 +262,12 @@ configure_kafka_broker() {
 			# num.network.threads (default: 3) here.
 	fi
 
+		# Simulate rack location based on availability zone
+	THIS_AZ=$(curl -f -s ${murl_top}/placement/availability-zone)
+	if [ -n "$THIS_AZ" ] ; then
+		set_property $BROKER_CFG "broker.rack" "$THIS_AZ"
+	fi
+
 		# Topic management settings
 	set_property $BROKER_CFG "auto.create.topics.enable" "false"
 	set_property $BROKER_CFG "delete.topics.enable" "true"
@@ -558,34 +564,33 @@ update_service_heap_opts() {
 }
 
 
-# Kludgy function to make sure that the local 
-# zookeeper service is up and running.  This is 
-# critical for clusters where zk and brokers 
-# are on the same nodes.
-wait_for_local_zk() {
-	echo "$zknodes" | grep -q -w "$THIS_HOST" 
-	[ $? -ne 0 ] && return 0
-
-		# Since this is a zookeeper node, we'll get
-		# the port from our zookeeper configuration.
-	eval $(grep ^clientPort= $ZK_CFG)
-	local zkPort=${clientPort:-2181}
-
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
+# Simple code to wait for formation of zookeeper quorum.
+# We know that the "kafka-topics" call to retrieve metadata
+# won't work until the quorum is formed ... so use that
+# if the cub utility is not present.
+#
+wait_for_zk_quorum() {
 
     ZOOKEEPER_WAIT=${1:-300}
-
-    SWAIT=$ZOOKEEPER_WAIT
     STIME=5
-	echo ruok | nc localhost ${zkPort} &> /dev/null
-    while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
-        sleep $STIME
-        SWAIT=$[SWAIT - $STIME]
-		echo ruok | nc localhost ${zkPort}
-    done
 
-	[ $SWAIT -le 0 ] && return 1
+	if [ -x $SCRIPTDIR/cub  -a  -f $SCRIPTDIR/docker-utils.jar ] ; then
+		DOCKER_UTILS_JAR=$SCRIPTDIR/docker-utils.jar $SCRIPTDIR/cub zk-ready $zconnect $ZOOKEEPER_WAIT
+
+		[ $? -ne 0 ] && return 1
+    	sleep $STIME		# still need some stabilization time
+
+	else
+    	SWAIT=$ZOOKEEPER_WAIT
+    	${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
+    	while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
+        	sleep $STIME
+        	SWAIT=$[SWAIT - $STIME]
+    		${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
+    	done
+
+		[ $SWAIT -le 0 ] && return 1
+	fi
 
 	return 0
 }
@@ -610,24 +615,7 @@ wait_for_brokers() {
 	[ ! -d $CP_HOME ] && CP_TOP="/usr"
 
     BROKER_WAIT=${1:-300}
-
-	if [ -x $SCRIPTDIR/cub  -a  -f $SCRIPTDIR/docker-utils.jar ] ; then
-		DOCKER_UTILS_JAR=$SCRIPTDIR/docker-utils.jar $SCRIPTDIR/cub zk-ready $zconnect $BROKER_WAIT
-
-		[ $? -ne 0 ] && return 1
-
-	else
-    	SWAIT=$BROKER_WAIT
-    	STIME=5
-    	${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
-    	while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
-        	sleep $STIME
-        	SWAIT=$[SWAIT - $STIME]
-    		${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
-    	done
-
-		[ $SWAIT -le 0 ] && return 1
-	fi
+    STIME=5
 
 		# Now that we know the ZK cluster is on line, we can check the number
 		# of registered brokers.  Ideally, we'd just look for "enough" brokers,
@@ -696,8 +684,9 @@ start_core_services() {
 
 	echo "$brokers" | grep -q -w "$THIS_HOST" 
 	if [ $? -eq 0 ] ; then
-		if [ $zkhost -eq 1 ] ; then
-			wait_for_local_zk
+		wait_for_zk_quorum
+		if [ $? -ne 0 ] ; then
+        	echo "  WARNING: Zookeeper Quorum not formed; broker start may fail" | tee -a $LOG
 		fi
 
 		if [ -x $CP_HOME/initscripts/cp-kafka-service ] ; then
