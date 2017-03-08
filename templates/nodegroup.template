@@ -283,17 +283,6 @@
                 "QuickStartS3URL": "https://s3.amazonaws.com"
             }
         },
-        "ConfluentVersion2Vindex": {
-            "3.2.0": {
-                "Vindex": "320"
-            },
-            "3.1.2": {
-                "Vindex": "312"
-            },
-            "3.1.1": {
-                "Vindex": "311"
-            }
-        },
         "LinuxAMINameMap": {
             "Amazon-Linux-HVM": {
                 "Code": "AMZNLINUXHVM"
@@ -460,6 +449,62 @@
                                                 "Ref": "QSS3KeyPrefix"
                                             },
                                             "scripts/cp-install.sh"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/cp-retrieve-connect-jars.sh": {
+                                "source": {
+                                    "Fn::Join": [
+                                        "/",
+                                        [
+                                            {
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
+                                            },
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/cp-retrieve-connect-jars.sh"
+                                        ]
+                                    ]
+                                },
+                                "mode": "000755",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/tmp/sbin/cp-retrieve-scripts.sh": {
+                                "source": {
+                                    "Fn::Join": [
+                                        "/",
+                                        [
+                                            {
+                                                "Fn::FindInMap": [
+                                                    "AWSInfoRegionMap",
+                                                    {
+                                                        "Ref": "AWS::Region"
+                                                    },
+                                                    "QuickStartS3URL"
+                                                ]
+                                            },
+                                            {
+                                                "Ref": "QSS3BucketName"
+                                            },
+                                            {
+                                                "Ref": "QSS3KeyPrefix"
+                                            },
+                                            "scripts/cp-retrieve-scripts.sh"
                                         ]
                                     ]
                                 },

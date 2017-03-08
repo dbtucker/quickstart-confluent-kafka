@@ -100,7 +100,7 @@ install_confluent_from_tarball() {
 
     echo "Installing Confluent Platform"
 
-    curl -f -o /tmp/$CP_TARBALL $CP_TARBALL_URI
+    curl -f -L -o /tmp/$CP_TARBALL $CP_TARBALL_URI
 
     if [ ! -s /tmp/$CP_TARBALL ] ; then
         echo "  Downloading Confluent Platform tarball failed"
