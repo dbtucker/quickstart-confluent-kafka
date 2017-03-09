@@ -49,7 +49,7 @@
     },
     {
         "ParameterKey": "NumWorkers",
-        "ParameterValue": "3"
+        "ParameterValue": "0"
     },
     {
         "ParameterKey": "NumZookeepers",
