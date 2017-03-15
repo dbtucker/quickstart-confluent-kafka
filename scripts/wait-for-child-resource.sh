@@ -98,7 +98,7 @@ do
     resourceStatus=$(aws cloudformation describe-stack-resources \
 	--output text \
 	--region $ThisRegion \
-	--stack-name $ThisStack \
+	--stack-name $ChildStackId \
 	--logical-resource-id $TargetResource \
 	--query StackResources[].ResourceStatus)
 done

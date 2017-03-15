@@ -321,7 +321,7 @@ configure_control_center() {
 		# When Control Center is hosted alongside brokers, 
 		# its data dir should be isolated.
 		# In other cases, allow a few more threads if we won't compete with 
-		# other services (Control Center is alone on worker-0)
+		# other services (Control Center deserves a bigger percentage of worker-0)
 	echo "$brokers" | grep -q -w "$THIS_HOST" 
 	if [ $? -eq 0 ] ; then
 		if [ -z "$CC_DATA_DIR" ] ; then
@@ -332,6 +332,9 @@ configure_control_center() {
 	elif [ $numWorkers -gt 1  -a  $ncpu -gt 8 ] ; then
 		set_property $CONTROL_CENTER_CFG "confluent.controlcenter.streams.num.stream.threads" "$ncpu" 
 	fi
+
+		# REST properties for service
+	set_property $CONTROL_CENTER_CFG "confluent.controlcenter.rest.compression.enable" "true" 
 
 	cc_topics_replicas=3
 	[ $cc_topics_replicas -gt $numBrokers ] && cc_topics_replicas=$numBrokers
@@ -630,6 +633,7 @@ wait_for_brokers() {
 		[ $? -ne 0 ] && return 1
 
 	else
+		SWAIT=$BROKER_WAIT
 		local runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
     	while [ ${runningBrokers:-0} -lt $targetBrokers  -a  $SWAIT -gt 0 ] ; do
         	sleep $STIME
@@ -805,14 +809,17 @@ create_topic_safely() {
 	local this_topic=$1
 	local partitions=$2
 	local replicas=$3
+	local cleanup_policy=$4
 
 	CP_TOP=${CP_HOME}
 	[ ! -d $CP_HOME ] && CP_TOP="/usr"
 
+	[ -n "$cleanup_policy" ] && CP_ARG="--config cleanup.policy=$cleanup_policy" 
+
 	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
 		--create --if-not-exists \
 		--topic $this_topic \
-		--replication-factor ${replicas} --partitions ${partitions}
+		--replication-factor ${replicas} --partitions ${partitions} $CP_ARG
 	while [ $? -ne 0  -a  $this_retry -lt $MAX_TOPIC_RETRIES ] ; do
 		this_retry=$[this_retry+1]
 		sleep $RETRY_INTERVAL_SEC
@@ -891,27 +898,30 @@ create_worker_topics() {
 	connect_config_partitions=1
 #	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
 #		--create --topic connect-configs \
-#		--replication-factor ${connect_topic_replicas} 
-#		--partitions ${connect_config_partitions}
+#		--replication-factor ${connect_topic_replicas} \
+#		--partitions ${connect_config_partitions} \
+#		--config cleanup.policy=compact 
 	create_topic_safely connect-configs \
-		${connect_config_partitions} ${connect_topic_replicas}
+		${connect_config_partitions} ${connect_topic_replicas} compact
 
 	connect_offsets_partitions=50
 	[ $numBrokers -lt 6 ] && connect_offsets_partitions=$[numBrokers*8] 
 #	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
 #		--create --topic connect-offsets \
 #		--replication-factor ${connect_topic_replicas} \
-#		--partitions ${connect_offsets_partitions}
+#		--partitions ${connect_offsets_partitions} \
+#		--config cleanup.policy=compact 
 	create_topic_safely connect-offsets \
-		${connect_offsets_partitions} ${connect_topic_replicas}
+		${connect_offsets_partitions} ${connect_topic_replicas} compact
 
 	connect_status_partitions=10
 #	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
 #		--create --topic connect-status \
 #		--replication-factor ${connect_topic_replicas} \
-#		--partitions ${connect_status_partitions}
+#		--partitions ${connect_status_partitions} \
+#		--config cleanup.policy=compact 
 	create_topic_safely connect-status \
-		${connect_status_partitions} ${connect_topic_replicas}
+		${connect_status_partitions} ${connect_topic_replicas} compact
 
 }
 
@@ -970,7 +980,7 @@ main()
 	update_service_heap_opts
 
 	start_core_services
-	wait_for_brokers 			# rudimentary function 
+	wait_for_brokers 600 			# rudimentary function 
 
 	create_worker_topics
 	start_worker_services
