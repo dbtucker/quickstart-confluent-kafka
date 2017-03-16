@@ -6,13 +6,13 @@
             "ParameterGroups": [
                 {
                     "Label": {
-                        "default": "Network Configuration"
+                        "default": "Confluent Configuration"
                     },
                     "Parameters": [
-                        "VPCID",
-                        "SubnetID",
-                        "RemoteAccessCIDR",
-                        "SSHAccessCIDR"
+                        "ClusterName",
+                        "ConfluentEdition",
+                        "ConfluentVersion",
+                        "ConnectorURLs"
                     ]
                 },
                 {
@@ -27,7 +27,18 @@
                 },
                 {
                     "Label": {
-                        "default": "Broker Amazon EC2 Configuration"
+                        "default": "AWS Network Configuration"
+                    },
+                    "Parameters": [
+                        "VPCID",
+                        "SubnetID",
+                        "RemoteAccessCIDR",
+                        "SSHAccessCIDR"
+                    ]
+                },
+                {
+                    "Label": {
+                        "default": "Broker Instance Configuration"
                     },
                     "Parameters": [
                         "NumBrokers",
@@ -38,7 +49,7 @@
                 },
                 {
                     "Label": {
-                        "default": "Zookeeper Amazon EC2 Configuration"
+                        "default": "Zookeeper Instance Configuration"
                     },
                     "Parameters": [
                         "NumZookeepers",
@@ -49,24 +60,13 @@
                 },
                 {
                     "Label": {
-                        "default": "Worker Amazon EC2 Configuration"
+                        "default": "Worker Instance Configuration"
                     },
                     "Parameters": [
                         "NumWorkers",
                         "WorkerNodeInstanceType",
                         "WorkerNodeStorage",
                         "WorkerNodeSpotPrice"
-                    ]
-                },
-                {
-                    "Label": {
-                        "default": "Confluent Configuration"
-                    },
-                    "Parameters": [
-                        "ClusterName",
-                        "ConfluentEdition",
-                        "ConfluentVersion",
-                        "ConfluentSecurity"
                     ]
                 },
                 {
@@ -98,11 +98,11 @@
                 "ConfluentEdition": {
                     "default": "Confluent Edition"
                 },
-                "ConfluentSecurity": {
-                    "default": "Secure Authentication"
-                },
                 "ConfluentVersion": {
                     "default": "Confluent Version"
+                },
+                "ConnectorURLs": {
+                    "default": "Repo(s) for addt'l Connector jars"
                 },
                 "KeyPairName": {
                     "default": "Key Pair Name"
@@ -218,24 +218,19 @@
             "Description": "Confluent Software Edition",
             "Type": "String"
         },
-        "ConfluentSecurity": {
-            "AllowedValues": [
-                "Disabled",
-                "Enabled"
-            ],
-            "Default": "Disabled",
-            "Description": "Enable secure authentication for cluster access",
-            "Type": "String"
-        },
         "ConfluentVersion": {
             "AllowedValues": [
                 "3.2.0",
-                "3.1.2",
-                "3.1.1"
+                "3.1.2"
             ],
             "ConstraintDescription": "Supported versions of Confluent Platform within AWS Marketplace",
-            "Default": "3.1.1",
+            "Default": "3.2.0",
             "Description": "Confluent Software Version",
+            "Type": "String"
+        },
+        "ConnectorURLs": {
+            "Default": "",
+            "Description": "Public locations (comma-separated list) from which to download additional Kafka Connect jars (eg https://s3.amazonaws.com/connector-bucket/dynamo)",
             "Type": "String"
         },
         "KeyPairName": {
@@ -586,11 +581,11 @@
                     "ConfluentEdition": {
                         "Ref": "ConfluentEdition"
                     },
-                    "ConfluentSecurity": {
-                        "Ref": "ConfluentSecurity"
-                    },
                     "ConfluentVersion": {
                         "Ref": "ConfluentVersion"
+                    },
+                    "ConnectorURLs": {
+                        "Ref": "ConnectorURLs"
                     },
                     "InstanceProfile": {
                         "Ref": "InstanceProfile"
@@ -676,9 +671,6 @@
                     },
                     "ConfluentEdition": {
                         "Ref": "ConfluentEdition"
-                    },
-                    "ConfluentSecurity": {
-                        "Ref": "ConfluentSecurity"
                     },
                     "ConfluentVersion": {
                         "Ref": "ConfluentVersion"
@@ -767,9 +759,6 @@
                     },
                     "ConfluentEdition": {
                         "Ref": "ConfluentEdition"
-                    },
-                    "ConfluentSecurity": {
-                        "Ref": "ConfluentSecurity"
                     },
                     "ConfluentVersion": {
                         "Ref": "ConfluentVersion"
@@ -1035,7 +1024,7 @@
                 ]
             }
         },
-        "WorkerRemoteIngress": {
+        "SchemaRegistryRemoteIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -1051,7 +1040,73 @@
                 },
                 "IpProtocol": "tcp",
                 "FromPort": "8081",
+                "ToPort": "8081",
+                "CidrIp": {
+                    "Ref": "RemoteAccessCIDR"
+                }
+            }
+        },
+        "RESTProxyRemoteIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentWorkers",
+                        {
+                            "Ref": "WorkerSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8082",
+                "ToPort": "8082",
+                "CidrIp": {
+                    "Ref": "RemoteAccessCIDR"
+                }
+            }
+        },
+        "KafkaConnectRemoteIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentWorkers",
+                        {
+                            "Ref": "WorkerSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8083",
                 "ToPort": "8083",
+                "CidrIp": {
+                    "Ref": "RemoteAccessCIDR"
+                }
+            }
+        },
+        "ControlCenterRemoteIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Fn::If": [
+                        "IndependentWorkers",
+                        {
+                            "Ref": "WorkerSecurityGroup"
+                        },
+                        {
+                            "Ref": "BrokerSecurityGroup"
+                        }
+                    ]
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "9021",
+                "ToPort": "9021",
                 "CidrIp": {
                     "Ref": "RemoteAccessCIDR"
                 }

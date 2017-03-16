@@ -36,8 +36,11 @@
 #			"<bucket>/scripts"
 #		Retrieval from HTTP URL requires existence of "scripts.lst" file
 #
+# Input (env vars)
+#	S3_REGION (default is us-west-2, though we'll look to bucket location if possible)
+#
 # examples
-# 		Retrieves from s3://confluent-cft-devel/scripts
+# 		Retrieve from s3://confluent-cft-devel/scripts
 #	retrieve-scripts.sh s3://confluent-cft-devel	
 #	retrieve-scripts.sh s3://confluent-cft-devel/scripts/
 #
@@ -75,26 +78,27 @@ do_s3_retrieval() {
 # so we always strip off the trailing one.
 #
 # We've also seen conditions where the first curl fails; so we'll
-# do this in a while loop
+# leverage the curl retry for a more reliable experience
 
 MAX_RETRIES=10
 
 do_curl_retrieval() {
 	SRC_URL=${1%/}
-	curl -f -s ${SRC_URL}/${LFILE} -o $TARGET_DIR/${LFILE} 
+	curl -f -s ${SRC_URL}/${LFILE} -o $TARGET_DIR/${LFILE} \
+		--retry $MAX_RETRIES --retry-max-time 30
 	[ $? -ne 0 ] && return 1
 
+	local rval=0
 	for f in $(cat $TARGET_DIR/${LFILE}) ; do
 		[ -z "$f" ] && continue
 
-		local retry=1
-		while [ ! -f $TARGET_DIR/$f ] ; do
-			[ $retry -gt $MAX_RETRIES ] && break
-			curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f
-			retry=$[retry+1]
-		done
+		curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f \
+			--retry $MAX_RETRIES --retry-max-time 180
+		[ $? -ne 0 ] && rval=1
 		chmod a+x $TARGET_DIR/$f
 	done
+
+	return $rval
 }
 
 set -x
@@ -119,7 +123,9 @@ main()
 		fi
 		S3_BUCKET=${S3_SRC#s3://}
 		S3_BUCKET=${S3_BUCKET%%/*}
+		S3_BUCKET_REGION=$(aws s3api get-bucket-location --bucket ${S3_BUCKET} | jq -r .LocationConstraint)
 
+		[ -n "$S3_BUCKET_REGION" ] && S3_REGION=$S3_BUCKET_REGION
 		S3_HOST="s3-${S3_REGION}"
 		[ "$S3_REGION" = "us-east-1" ] && S3_HOST="s3"
 		HTTP_SRC=https://${S3_HOST}.amazonaws.com/${S3_SRC#s3://}

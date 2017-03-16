@@ -42,12 +42,16 @@
         "ConfluentVersion": {
             "AllowedValues": [
                 "3.2.0",
-                "3.1.2",
-                "3.1.1"
+                "3.1.2"
             ],
             "ConstraintDescription": "Supported versions of Confluent Platform within AWS Marketplace",
-            "Default": "3.1.1",
+            "Default": "3.2.0",
             "Description": "Confluent Software Version",
+            "Type": "String"
+        },
+        "ConnectorURLs": {
+            "Default": "",
+            "Description": "Public locations (comma-separated list) from which to download additional Kafka Connect jars (eg https://s3.amazonaws.com/connector-bucket/dynamo)",
             "Type": "String"
         },
         "InstanceProfile": {
@@ -977,7 +981,7 @@
                                 "\n",
                                 "\n",
                                 "## Tag the instance (now that we're sure of launch index)\n",
-                                "##   NOTE: as of Feb 2017, it appears that ami_launch_index is always correct)\n",
+                                "##   NOTE: ami_launch_index is correct onlyi within a single subnet)\n",
                                 "instance_id=$(curl -f http://instance-data/latest/meta-data/instance-id)\n",
                                 "ami_launch_index=$(curl -f http://instance-data/latest/meta-data/ami-launch-index)\n",
                                 "launch_node=$(grep -w `hostname` /tmp/",
@@ -985,7 +989,11 @@
                                     "Ref": "NodeDesignation"
                                 },
                                 "s | awk '{print $2}')\n",
-                                "launch_index=${launch_node#*NODE}\n",
+                                "if [ -n \"$launch_node\" ] ; then\n",
+                                "  launch_index=${launch_node#*NODE}\n",
+                                "else\n",
+                                "  launch_index=${ami_launch_index}\n",
+                                "fi\n",
                                 "if [ -n \"$instance_id\" ] ; then\n",
                                 "  instance_tag=",
                                 {
@@ -995,7 +1003,7 @@
                                 {
                                     "Ref": "NodeDesignation"
                                 },
-                                "-${ami_launch_index}\n",
+                                "-${launch_index}\n",
                                 "  aws ec2 create-tags",
                                 " --region ",
                                 {
@@ -1008,12 +1016,19 @@
                                 "$AMI_SBIN/cp-install.sh 2> /tmp/cp-install.err \n",
                                 "$AMI_SBIN/cp-deploy.sh 2> /tmp/cp-deploy.err \n",
                                 "\n",
+                                "CONNECTOR_URLS=",{ "Ref": "ConnectorURLs" }, " \n",
+                                "if [ -n \"$CONNECTOR_URLS\" ] ; then \n",
+                                "  for csrc in \"${CONNECTOR_URLS//,/ }\" ; do \n",
+                                "    $AMI_SBIN/cp-retrieve-connect-jars.sh $csrc 2>&1 | tee -a /tmp/cp-retrieve-connect-jars.err \n",
+                                "  done \n",
+                                "fi\n",
+                                "\n",
                                 "## [ OPTIONAL ] Open up ssh to allow direct login\n",
                                 "#sed -i 's/ChallengeResponseAuthentication .*no$/ChallengeResponseAuthentication yes/' /etc/ssh/sshd_config\n",
                                 "#service sshd restart\n",
                                 "\n",
                                 "## If all went well, signal success (must be done by ALL nodes in group)\n",
-                                "cfn-signal -e 0 -r 'Confluent Platform broker deployment complete' '",
+                                "cfn-signal -e 0 -r 'Confluent Platform node deployment complete' '",
                                 {
                                     "Ref": "NodesReadyHandle"
                                 },
