@@ -17,7 +17,7 @@
     },
     {
         "ParameterKey": "BrokerNodeStorage",
-        "ParameterValue": "10"
+        "ParameterValue": "32"
     },
     {
         "ParameterKey": "ClusterName",

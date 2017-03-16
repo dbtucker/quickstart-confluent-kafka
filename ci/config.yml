@@ -20,14 +20,14 @@ global:
   reporting: true
 tests:
   test1:
-    parameter_input: enterprise-3.1.1-brokersonly-ondemand-ephemeral-centos.json
+    parameter_input: enterprise-3.2.0-brokersonly-ondemand-ephemeral-centos.json
     regions:
       - ap-northeast-1
       - ap-northeast-2
       - ap-south-1
     template_file: confluent-kafka-master.template
   test2:
-    parameter_input: enterprise-3.1.1-brokerszookeepers-ondemand-ephemeral-centos.json
+    parameter_input: enterprise-3.2.0-brokerszookeepers-ondemand-ephemeral-centos.json
     regions:
       - ap-southeast-1
       - ap-southeast-2
