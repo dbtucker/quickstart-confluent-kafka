@@ -28,10 +28,6 @@
         "ParameterValue": "Confluent Enterprise"
     },
     {
-        "ParameterKey": "ConfluentSecurity",
-        "ParameterValue": "Disabled"
-    },
-    {
         "ParameterKey": "ConfluentVersion",
         "ParameterValue": "3.1.2"
     },

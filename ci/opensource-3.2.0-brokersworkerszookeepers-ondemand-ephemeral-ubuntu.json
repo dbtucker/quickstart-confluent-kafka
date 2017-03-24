@@ -25,7 +25,7 @@
     },
     {
         "ParameterKey": "ConfluentEdition",
-        "ParameterValue": "Confluent Enterprise"
+        "ParameterValue": "Confluent Open Source"
     },
     {
         "ParameterKey": "ConfluentVersion",
@@ -37,7 +37,7 @@
     },
     {
         "ParameterKey": "LinuxOSAMI",
-        "ParameterValue": "CentOS-7-HVM"
+        "ParameterValue": "Ubuntu-Server-16.04-LTS-HVM"
     },
     {
         "ParameterKey": "NumBrokers",
@@ -45,11 +45,11 @@
     },
     {
         "ParameterKey": "NumWorkers",
-        "ParameterValue": "0"
+        "ParameterValue": "3"
     },
     {
         "ParameterKey": "NumZookeepers",
-        "ParameterValue": "0"
+        "ParameterValue": "3"
     },
     {
         "ParameterKey": "PublicSubnet1CIDR",

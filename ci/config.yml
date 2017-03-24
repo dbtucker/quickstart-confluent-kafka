@@ -49,3 +49,10 @@ tests:
       - us-west-1
       - us-west-2
     template_file: confluent-kafka-master.template
+  test5:
+    parameter_input: opensource-3.2.0-brokersworkerszookeepers-ondemand-ephemeral-ubuntu.json
+    regions:
+      - eu-west-1
+      - us-east-1
+      - us-west-2
+    template_file: confluent-kafka-master.template
