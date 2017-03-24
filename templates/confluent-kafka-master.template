@@ -271,7 +271,7 @@
             "Type": "Number"
         },
         "NumWorkers": {
-            "Default": "0",
+            "Default": "2",
             "Description": "Number of Kafka Connect Workers",
             "MaxValue": "9",
             "MinValue": "0",
