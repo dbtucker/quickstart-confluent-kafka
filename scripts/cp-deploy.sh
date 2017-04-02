@@ -29,7 +29,8 @@
 #	Script run as root
 #
 # Pre-requisites
-#	Confluent installation (at CP_HOME=/opt/confluent)
+#	Confluent installation (usually at CP_HOME=/opt/confluent, but we
+#		support the Linux package installs {deb/rpm} to /usr)
 #
 #	List of cluster hosts by role (/tmp/cphosts)
 #		/tmp/brokers, /tmp/zookeepers, /tmp/workers
@@ -85,6 +86,36 @@ else
 	CLUSTERNAME="awsqs"
 fi
 
+
+# We'll set the password for the kadmin user to
+# private ... the instance_id.  For "secure" clusters,
+# use a consistent password across ALL instances.
+#
+# Input: KADMIN_PASSWD {optional override}
+#
+update_kadmin_user() {
+	if [ -z "$KADMIN_PASSWD" ] ; then
+		grep -q -i "Enabled" /tmp/csecurity 2> /dev/null
+		if [ $? -eq 0 ] ; then
+			broker0_instance_id=$(head -1 /tmp/brokers | awk '{print $3}')
+			KADMIN_PASSWD=${broker0_instance_id:-C0nfluent}
+		else
+			instance_id=$(curl -f -s $murl_top/instance-id 2> /dev/null)
+			KADMIN_PASSWD=${instance_id:-C0nfluent}
+		fi
+	fi
+
+	if [ -n "$KADMIN_PASSWD" ] ; then
+		passwd $KADMIN_USER << passwdEOF
+$KADMIN_PASSWD
+$KADMIN_PASSWD
+passwdEOF
+	fi
+
+	export KADMIN_PASSWD
+}
+
+
 # Locate the configuration files (since we use them all the time)
 # Should be called ONLY after the software has been installed.
 locate_cfg() {
@@ -118,7 +149,11 @@ locate_start_scripts() {
 # Archive the configuration file sto a known location
 archive_cfg() {
 	NOW=$(date +"%F-%H:%M")
-	backup_dir=$CP_HOME/etc/archive_${NOW}
+
+	if [ -d $CP_HOME ] ; then  backup_dir=$CP_HOME/etc/archive_${NOW}
+	else                       backup_dir=/etc/confluent_archive_${NOW}
+	fi
+
 	mkdir -p $backup_dir
 
 	cp -p $ZK_CFG $backup_dir
@@ -270,7 +305,7 @@ configure_kafka_broker() {
 
 		# Topic management settings
 	set_property $BROKER_CFG "auto.create.topics.enable" "false"
-	set_property $BROKER_CFG "delete.topics.enable" "true"
+	set_property $BROKER_CFG "delete.topic.enable" "true"
 
 		# Enable graceful leader migration
 	set_property $BROKER_CFG "controlled.shutdown.enable" "true"
@@ -279,7 +314,8 @@ configure_kafka_broker() {
 	set_property $BROKER_CFG "confluent.support.customer.id" "AWS_BYOL"
 
 		# Enable replicator settings if the rebalancer is present
-	if [ -x $CP_HOME/bin/confluent-rebalancer ] ; then
+	which confluent-rebalancer &> /dev/null
+	if [ $? -eq 0  -o  -x $CP_HOME/bin/confluent-rebalancer ] ; then
 		mr_topic_replicas=3
 		[ $mr_topic_replicas -gt $numBrokers ] && mr_topic_replicas=$numBrokers
 
@@ -307,6 +343,38 @@ configure_rest_proxy() {
 		# Should grab this from zookeeper if it's available
 	set_property $REST_PROXY_CFG "schema.registry.url" "http://$srconnect" 0
 	set_property $REST_PROXY_CFG "zookeeper.connect" "$zconnect" 0
+}
+
+# Configure the JAAS security and add it to the 
+# invocation of the Control Center application.
+configure_control_center_security() {
+	[ ! -f $CONTROL_CENTER_CFG ] && return 1
+
+	CC_REALM=c3
+	CC_ADMIN_ROLE=Administrators
+	CC_CFG_DIR=$(dirname $CONTROL_CENTER_CFG)
+	CC_JAAS_CONF=$CC_CFG_DIR/jaas.conf
+	CC_JAAS_LOGIN_PROPERTIES=$CC_CFG_DIR/jaas-login.properties
+
+    cat > $CC_JAAS_CONF << EOF_jaas_conf
+$CC_REALM {
+  org.eclipse.jetty.jaas.spi.PropertyFileLoginModule required 
+  	debug="true" file="$CC_JAAS_LOGIN_PROPERTIES";
+};
+EOF_jaas_conf
+
+    cat > $CC_JAAS_LOGIN_PROPERTIES << EOF_jaas_login_properties
+$KADMIN_USER: ${KADMIN_PASSWD:-C0nfluent}, $CC_ADMIN_ROLE
+disallowed: no_access
+EOF_jaas_login_properties
+
+		# Lastly, update the start script to include 
+		# the JAAS specification (be paranoid ... add this
+		# only if the CONF file was created)
+	if [ -f $CC_JAAS_CONF  -a  -f $CC_JAAS_LOGIN_PROPERTIES ] ; then
+		sed -i '/^bin_dir=/a \ \
+export CONTROL_CENTER_OPTS=\"-Djava.security.auth.login.config='$CC_JAAS_CONF'\"' $CONTROL_CENTER_SCRIPT
+	fi
 }
 
 configure_control_center() {
@@ -369,8 +437,11 @@ configure_control_center() {
 	fi
 
 		# Control Center requires a separate Kafka Connect cluster
-	CC_CONNECT_CFG=$CP_HOME/etc/confluent-control-center/connect-cc.properties
-	cp -p $CP_HOME/etc/schema-registry/connect-avro-distributed.properties $CC_CONNECT_CFG
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP=""
+
+	CC_CONNECT_CFG=$CP_TOP/etc/confluent-control-center/connect-cc.properties
+	cp -p $CP_TOP/etc/schema-registry/connect-avro-distributed.properties $CC_CONNECT_CFG
 
 	set_property $CC_CONNECT_CFG "consumer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor" 0
 	set_property $CC_CONNECT_CFG "producer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor" 0
@@ -416,13 +487,16 @@ configure_workers() {
 
 		# There are multiple "connect-*.properties" files in
 		# the schema registry location that need to be updated as well
-	for f in $CP_HOME/etc/schema-registry/connect-*.properties ; do
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP=""
+
+	for f in $CP_TOP/etc/schema-registry/connect-*.properties ; do
 		set_property $f "bootstrap.servers" "${bconnect}" 0
 		set_property $f "key.converter.schema.registry.url" "http://${srconnect}" 0
 		set_property $f "value.converter.schema.registry.url" "http://${srconnect}" 0
 	done
 
-	for f in $CP_HOME/etc/schema-registry/*-distributed.properties ; do
+	for f in $CP_TOP/etc/schema-registry/*-distributed.properties ; do
 		set_property $KAFKA_CONNECT_CFG "group.id" "${CLUSTERNAME}-connect-cluster" 0
 	done
 }
@@ -507,6 +581,12 @@ configure_confluent_node() {
 
 	configure_workers 
 	[ -n "$workers" ] && configure_control_center
+
+		# Custom configuration when security is enabled
+	grep -q -i "Enabled" /tmp/csecurity 2> /dev/null
+	if [ $? -eq 0 ] ; then
+		[ -n "$workers" ] && configure_control_center_security
+	fi
 }
 
 # Sets memory allocation in start scripts
@@ -667,8 +747,6 @@ start_core_services() {
 
 	BIN_DIR=$CP_TOP/bin
 
-	local zkhost=0
-
 	echo "$zknodes" | grep -q -w "$THIS_HOST" 
 	if [ $? -eq 0 ] ; then
 		if [ -x $CP_HOME/initscripts/cp-zk-service ] ; then
@@ -682,8 +760,6 @@ start_core_services() {
 		else
 			$BIN_DIR/zookeeper-server-start -daemon $ZK_CFG
 		fi
-
-		zkhost=1
 	fi
 
 	echo "$brokers" | grep -q -w "$THIS_HOST" 
@@ -707,6 +783,12 @@ start_core_services() {
 	fi
 }
 
+# This function handles the launching of worker
+# services as either basic Linux services or via
+# standalone commands.   The deployment process that
+# uses the standalone commands is fragile ... so we 
+# do some extra work and retry the startup command
+# multiple times if we don't see a successful start.
 start_worker_services() {
 	CP_TOP=${CP_HOME}
 	[ ! -d $CP_HOME ] && CP_TOP="/usr"
@@ -731,7 +813,18 @@ start_worker_services() {
 #			/etc/init.d/cp-schema-service start
 			service cp-schema-service start
 		else
-			$(cd $BIN_DIR/../logs; $BIN_DIR/schema-registry-start -daemon $SCHEMA_REG_CFG > /dev/null)
+			local LOGS_DIR=${BIN_DIR}/../logs
+			[ ! -d $LOGS_DIR ] && LOGS_DIR=/var/log
+
+			launch_attempt=1
+			curl -f -s http://localhost:8081
+			while [ $? -ne 0  -a  $launch_attempt -le 3 ] ; do 
+				$(cd $LOGS_DIR; $BIN_DIR/schema-registry-start -daemon $SCHEMA_REG_CFG > /dev/null)
+				sleep 10
+
+				launch_attempt=$[launch_attempt+1]
+				curl -f -s http://localhost:8081
+			done
 		fi
 	fi
 
@@ -746,7 +839,18 @@ start_worker_services() {
 #			/etc/init.d/cp-rest-service start
 			service cp-rest-service start
 		else
-			$(cd $BIN_DIR/../logs; $BIN_DIR/kafka-rest-start -daemon $REST_PROXY_CFG > /dev/null)
+			local LOGS_DIR=${BIN_DIR}/../logs
+			[ ! -d $LOGS_DIR ] && LOGS_DIR=/var/log
+
+			launch_attempt=1
+			curl -f -s http://localhost:8082
+			while [ $? -ne 0  -a  $launch_attempt -le 3 ] ; do 
+				$(cd $LOGS_DIR; $BIN_DIR/kafka-rest-start -daemon $REST_PROXY_CFG > /dev/null)
+				sleep 10
+
+				launch_attempt=$[launch_attempt+1]
+				curl -f -s http://localhost:8082
+			done
 		fi
 	fi
 
@@ -761,7 +865,15 @@ start_worker_services() {
 #			/etc/init.d/cp-connect-service start
 			service cp-connect-service start
 		else
-			$BIN_DIR/connect-distributed -daemon $KAFKA_CONNECT_CFG
+			launch_attempt=1
+			curl -f -s http://localhost:8083
+			while [ $? -ne 0  -a  $launch_attempt -le 3 ] ; do 
+				$BIN_DIR/connect-distributed -daemon $KAFKA_CONNECT_CFG
+				sleep 10
+
+				launch_attempt=$[launch_attempt+1]
+				curl -f -s http://localhost:8083
+			done
 		fi
 	fi
 }
@@ -786,7 +898,10 @@ start_control_center() {
 			service control-center-service start
 			[ $? -ne 0 ] && service control-center-service start
 		else
-			$(cd $BIN_DIR/../logs; $BIN_DIR/control-center-start -daemon $CONTROL_CENTER_CFG > /dev/null)
+			local LOGS_DIR=${BIN_DIR}/../logs
+			[ ! -d $LOGS_DIR ] && LOGS_DIR=/var/log
+
+			$(cd $LOGS_DIR; $BIN_DIR/control-center-start -daemon $CONTROL_CENTER_CFG > /dev/null)
 		fi
 	fi
 }
@@ -871,6 +986,13 @@ wait_for_topic() {
 #	let other workers wait.
 #
 create_worker_topics() {
+		# Topic creation only executed on brokers/workers ... not ZK-ONLY nodes
+	echo "$brokers" | grep -q -w "$THIS_HOST"
+	if [ $? -ne 0 ] ; then
+		echo "$workers" | grep -q -w "$THIS_HOST"
+		[ $? -ne 0 ] && return 0
+	fi
+
 		# If this instance won't create the topics ... just wait
 		# till the last one shows up.
 #	if [ "${workers%%,*}" != $THIS_HOST ] ; then
@@ -959,6 +1081,8 @@ main()
 	    echo "Insufficient specification for Confluent Platform cluster ... terminating script" >> $LOG
 		exit 1
 	fi
+
+	update_kadmin_user
 
 		# Make sure DATA_DIRS is set.   If it is not # passed in (or obvious
 		# from the log file generated when we initialized the storage), 

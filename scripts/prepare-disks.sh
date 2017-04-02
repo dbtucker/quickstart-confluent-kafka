@@ -148,7 +148,7 @@ mount_data_disks() {
 
 	didx=0
 	for dev in $DATA_DISKS ; do
-		didx=$[didx+1]			# increment first so "continue" logic works
+		didx=$((didx+1))		# increment first so "continue" logic works
 
 		mkdir $DATA_TOP/data${didx}
 		[ $? -ne 0 ] && continue			# need better error handling here

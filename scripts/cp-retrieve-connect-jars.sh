@@ -35,7 +35,7 @@
 #
 # Input (env vars)
 #	S3_REGION (default is us-west-2, though we'll look to bucket location if possible)
-#	CP_VERSION (default is 3.1.1)
+#	CP_VERSION (default is 3.1.1, if can't be determined otherwise)
 #	
 # usage:
 #	retrieve-connect-jars.sh <s3_bucket | URL>
@@ -55,15 +55,25 @@ SCRIPTDIR=`dirname ${THIS_SCRIPT}`
 
 LOG=/tmp/cp-retrieve-connect-jars.log
 
+if [ -z "$CP_HOME" ] ; then
+	if [ -d /opt/confluent ] ; then
+		CP_HOME=/opt/confluent
+	else
+		CP_HOME=/usr
+	fi
+fi
+
 if [ -f /tmp/cversion ] ; then
 	CP_VERSION=$(cat /tmp/cversion)
+elif [ -f $CP_HOME/share/confluent-common/doc/confluent-common/version.txt ] ; then
+	CV=$(cat $CP_HOME/share/confluent-common/doc/confluent-common/version.txt)
+	CV=${CV%%-*}
+	CP_VERSION=${CV#v}
 else
 	CP_VERSION=${CP_VERSION:-3.1.1}
 fi
 
 S3_REGION=${S3_REGION:-us-west-2}
-CP_HOME=${CP_HOME:-/opt/confluent-$CP_VERSION}
-[ ! -d $CP_HOME ] && CP_HOME=/opt/confluent 
 
 CONNECTOR_JAR_SRC=${1:-s3://confluent-cft-devel}
 LFILE=${LFILE:-jars.lst}
@@ -92,14 +102,14 @@ MAX_RETRIES=10
 do_curl_retrieval() {
 	SRC_URL=${1%/}
 	curl -f -s ${SRC_URL}/${LFILE} -o $TARGET_DIR/${LFILE} \
-		--retry $MAX_RETRIES --retry-max-time 30
+		--retry $MAX_RETRIES --retry-max-time 60
 	[ $? -ne 0 ] && return 1
 
 	local rval=0
 	for f in $(cat $TARGET_DIR/${LFILE}) ; do
 		[ -z "$f" ] && continue
 
-		curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f
+		curl -f -s ${SRC_URL}/$f -o $TARGET_DIR/$f \
 			--retry $MAX_RETRIES --retry-max-time 180
 		[ $? -ne 0 ] && rval=1
 		chmod a+x $TARGET_DIR/$f

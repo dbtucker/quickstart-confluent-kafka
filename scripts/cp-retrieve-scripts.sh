@@ -85,7 +85,7 @@ MAX_RETRIES=10
 do_curl_retrieval() {
 	SRC_URL=${1%/}
 	curl -f -s ${SRC_URL}/${LFILE} -o $TARGET_DIR/${LFILE} \
-		--retry $MAX_RETRIES --retry-max-time 30
+		--retry $MAX_RETRIES --retry-max-time 60
 	[ $? -ne 0 ] && return 1
 
 	local rval=0
