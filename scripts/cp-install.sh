@@ -86,7 +86,7 @@ fi
 # Retrieve released versions from packages.confluent.io; 
 CP_TARBALL_URI=http://packages.confluent.io/archive/${CP_MINOR_VERSION}/$CP_TARBALL
 
-# STAGING builds are available from alternative locations.
+# STAGING builds are available from an alternate location.
 #   (and STAGING suffix is not carried through to the tarball or install directory)
 if [ -z "${CP_VERSION#*-STAGING}" ] ; then
 	CP_VERSION=${CP_VERSION%-STAGING}
@@ -115,17 +115,78 @@ install_confluent_from_tarball() {
     chown -R $KADMIN_USER:$KADMIN_GROUP /opt/confluent-${CP_VERSION}*
 }
 
+
+REPO_FILE="/etc/yum.repos.d/confluent.repo"
+
+add_confluent_repo_centos() {
+	[ -f $REPO_FILE ] && return
+
+	CVER=`lsb_release -r | awk '{print $2}'`
+	CVER=${CVER%%.*}
+	[ "${CVER:-0}" -lt 6 ] && return		# CentOS 6 and above only
+	[ "${CVER}" -gt 9 ] && CVER=7           # Amazon Linux (lsb is of form <year>.<month>
+
+    cat >> $REPO_FILE << EOF_repo
+[Confluent.dist]
+name=Confluent repository (dist)
+baseurl=http://packages.confluent.io/rpm/${CP_MINOR_VERSION}/$CVER
+gpgcheck=1
+gpgkey=http://packages.confluent.io/rpm/${CP_MINOR_VERSION}/archive.key
+enabled=1
+
+[Confluent]
+name=Confluent repository
+baseurl=http://packages.confluent.io/rpm/${CP_MINOR_VERSION}
+gpgcheck=1
+gpgkey=http://packages.confluent.io/rpm/${CP_MINOR_VERSION}/archive.key
+enabled=1
+EOF_repo
+}
+
+update_confluent_repo_rpm() {
+	if [ -f $REPO_FILE ] ; then
+		sed -i "s/rpm\/.../rpm\/${CP_MINOR_VERSION}/" $REPO_FILE
+	else
+		add_confluent_repo_centos
+	fi
+
+	yum makecache
+}
+
+update_confluent_repo_deb() {
+	wget -qO - http://packages.confluent.io/deb/${CP_MINOR_VERSION}/archive.key | apt-key add -
+
+	sed -i "/packages.confluent.io/d" /etc/apt/sources.list
+	add-apt-repository "deb [arch=amd64] http://packages.confluent.io/deb/${CP_MINOR_VERSION} stable main"
+
+	apt-get -y update
+}
+
+update_confluent_repo_spec() {
+	which apt-get &> /dev/null
+	if [ $? -eq 0 ] ; then
+		update_confluent_repo_deb
+	else
+		update_confluent_repo_rpm
+	fi
+}
+
 #Brute force logic ... the complete umbrella package 
-determine_confluent_packages() {
+#	Issue between 3.1 and 3.2 not including new connectors
+#	We'll force them by hand.
+platform_confluent_packages() {
 	if [ -f /tmp/cedition ] ; then
 		grep -q -i enterprise /tmp/cedition 2> /dev/null
 		if [ $? -eq 0 ] ; then
 			pkgs="confluent-platform-${SCALA_VERSION}"
+			pkgs="$pkgs confluent-kafka-connect-*"
 		else
 			pkgs="confluent-platform-oss-${SCALA_VERSION}"
+			pkgs="$pkgs confluent-kafka-connect-* -x confluent-kafka-connect-replicator"
 		fi
 	else
 		pkgs="confluent-platform-oss-${SCALA_VERSION}"
+		pkgs="$pkgs confluent-kafka-connect-* -x confluent-kafka-connect-replicator"
 	fi
 
 	echo $pkgs
@@ -142,7 +203,6 @@ minimal_confluent_packages() {
 		# Include the client-side with all installs
 		# (this is all that is needed for zookeeper nodes)
 	pkgs="confluent-kafka-${SCALA_VERSION}"
-	pkgs="$pkgs librdkafka confluent-kafka-python"
 
 	grep -q $THIS_HOST /tmp/brokers
 	if [ $? -eq 0 ] ; then
@@ -155,7 +215,6 @@ minimal_confluent_packages() {
 	grep -q $THIS_HOST /tmp/workers
 	if [ $? -eq 0 ] ; then
 		pkgs="$pkgs confluent-kafka-rest"
-		pkgs="$pkgs avro confluent-libserdes"
 		if [ $include_enterprise -gt 0 ] ; then
 			pkgs="$pkgs confluent-kafka-connect-*"
 		else
@@ -163,12 +222,12 @@ minimal_confluent_packages() {
 		fi
 
 			# Put ControlCenter and SchemaRegistry 
-			# on the first worker
-		head -1 /tmp/workers | grep -q $THIS_HOST 2> /dev/null
+			# on the first two workers
+		head -2 /tmp/workers | grep -q $THIS_HOST 2> /dev/null
 		if [ $? -eq 0 ] ; then
-			pkgs="$pkgs confluent-kafka-schema-registry"
+			pkgs="$pkgs confluent-schema-registry"
 			[ $include_enterprise -gt 0 ] && \
-				pkgs="$pkgs confluent-kafka-control-center"
+				pkgs="$pkgs confluent-control-center"
 		fi
 	fi
 
@@ -176,29 +235,37 @@ minimal_confluent_packages() {
 }
 
 install_confluent_from_repo() {
-	CONFLUENT_PKGS=$(minimal_confluent_packages)
+	CONFLUENT_PKGS=$(platform_confluent_packages)
+
+	which gcc &> /dev/null
+	gcc_available=$?
 
 	which apt-get &> /dev/null
 	if [ $? -eq 0 ] ; then
 		apt-get -y install $CONFLUENT_PKGS
+		[ $gcc_available ] && apt-get -y install librdkafka-dev
 	else
 		yum install -y $CONFLUENT_PKGS
+		[ $gcc_available ] && yum install -y librdkafka-devel
 	fi
+
+	[ $gcc_available ] && pip install --upgrade confluent-kafka
 }
 
 main()
 {
-    echo "$0 script started at "`date` >> $LOG
+	echo "$0 script started at "`date` >> $LOG
 
-    if [ `id -u` -ne 0 ] ; then
-        echo "  ERROR: script must be run as root" >> $LOG
-        exit 1
-    fi
+	if [ `id -u` -ne 0 ] ; then
+		echo "  ERROR: script must be run as root" >> $LOG
+		exit 1
+	fi
 
-    install_confluent_from_tarball
-#    install_confluent_from_repo
+	update_confluent_repo_spec
+#	install_confluent_from_repo
+	install_confluent_from_tarball
 
-    echo "$0 script finished at "`date` >> $LOG
+	echo "$0 script finished at "`date` >> $LOG
 }
 
 
