@@ -6,6 +6,17 @@
             "ParameterGroups": [
                 {
                     "Label": {
+                        "default": "Network Configuration"
+                    },
+                    "Parameters": [
+                        "VPCID",
+                        "SubnetID",
+                        "RemoteAccessCIDR",
+                        "SSHAccessCIDR"
+                    ]
+                },
+                {
+                    "Label": {
                         "default": "Confluent Configuration"
                     },
                     "Parameters": [
@@ -23,17 +34,6 @@
                         "KeyPairName",
                         "LinuxOSAMI",
                         "BootDiskSize"
-                    ]
-                },
-                {
-                    "Label": {
-                        "default": "AWS Network Configuration"
-                    },
-                    "Parameters": [
-                        "VPCID",
-                        "SubnetID",
-                        "RemoteAccessCIDR",
-                        "SSHAccessCIDR"
                     ]
                 },
                 {
