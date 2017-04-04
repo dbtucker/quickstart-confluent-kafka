@@ -1,6 +1,6 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "This template creates a new VPC infrastructure for a Confluent Kafka reference architecture. **WARNING** This template creates Amazon EC2 instance and related resources. You will be billed for the AWS resources used if you create a stack from this template.",
+    "Description": "This template creates a new VPC infrastructure for a Confluent Platform reference architecture. **WARNING** This template creates Amazon EC2 instance and related resources. You will be billed for the AWS resources used if you create a stack from this template.",
     "Metadata": {
         "AWS::CloudFormation::Interface": {
             "ParameterGroups": [
@@ -19,7 +19,7 @@
                 },
                 {
                     "Label": {
-                        "default": "Confluent Configuration"
+                        "default": "Confluent Platform Configuration"
                     },
                     "Parameters": [
                         "ClusterName",
@@ -101,10 +101,10 @@
                     "default": "Cluster Name"
                 },
                 "ConfluentEdition": {
-                    "default": "Confluent Edition"
+                    "default": "Confluent Platform Edition"
                 },
                 "ConfluentVersion": {
-                    "default": "Confluent Version"
+                    "default": "Confluent Platform Version"
                 },
                 "ConnectorURLs": {
                     "default": "Repo(s) for addt'l Connector jars"

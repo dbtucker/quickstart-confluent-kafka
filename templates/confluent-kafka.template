@@ -17,7 +17,7 @@
                 },
                 {
                     "Label": {
-                        "default": "Confluent Configuration"
+                        "default": "Confluent Platform Configuration"
                     },
                     "Parameters": [
                         "ClusterName",
@@ -96,10 +96,10 @@
                     "default": "Cluster Name"
                 },
                 "ConfluentEdition": {
-                    "default": "Confluent Edition"
+                    "default": "Confluent Platform Edition"
                 },
                 "ConfluentVersion": {
-                    "default": "Confluent Version"
+                    "default": "Confluent Platform Version"
                 },
                 "ConnectorURLs": {
                     "default": "Repo(s) for addt'l Connector jars"
