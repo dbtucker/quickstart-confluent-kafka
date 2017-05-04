@@ -180,9 +180,12 @@ if [ -f /tmp/cedition ] ; then
 	  	$CFN_SIGNAL -e 0  -r "Stack_Info" \
 		  	-i "control.center.console" -d "http://${CC_HOST}:9021" "$HANDLE_URL"
 
-#		 echo "	control.center.credentials: $KAFKA_USER/${instance_id}" >> $LOG
-#		 $CFN_SIGNAL -e 0  -r "Stack_Info" \
-#			-i "control.center.credentials" -d "$KAFKA_USER/${instance_id}" "$HANDLE_URL"
+		grep -q -i "Enabled" /tmp/csecurity 2> /dev/null
+		if [ $? -eq 0 ] ; then
+			echo "	control.center.credentials: $KAFKA_USER/${instance_id}" >> $LOG
+			$CFN_SIGNAL -e 0  -r "Stack_Info" \
+				-i "control.center.credentials" -d "$KAFKA_USER/${instance_id}" "$HANDLE_URL"
+		fi
 	fi
 fi
 
