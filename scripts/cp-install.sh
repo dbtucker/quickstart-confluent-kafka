@@ -62,7 +62,7 @@ THIS_HOST=${THIS_FQDN%%.*}
 KADMIN_USER=${KADMIN_USER:-kadmin}
 KADMIN_GROUP=${KADMIN_GROUP:-kadmin}
 
-CP_HOME=/opt/confluent
+CP_HOME=${CP_HOME:-/opt/confluent}
 
 if [ -f /tmp/cversion ] ; then
 	CP_VERSION=$(cat /tmp/cversion)

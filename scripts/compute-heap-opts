@@ -122,8 +122,8 @@ fi
 # Set up some targets and boundaries for our memory allocation.
 # Assumes reasonable isolation of services (adjustments made later).
 #	MIN values are from hard-coded defaults in Confluent 3.1.1
-BROKER_TARGET_PCT=50
-BROKER_HEAP_MAX=8192
+BROKER_TARGET_PCT=25
+BROKER_HEAP_MAX=4608
 BROKER_HEAP_MIN=1024
 
 ZOOKEEPER_TARGET_PCT=10

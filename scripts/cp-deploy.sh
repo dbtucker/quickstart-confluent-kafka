@@ -343,6 +343,7 @@ configure_rest_proxy() {
 		# Should grab this from zookeeper if it's available
 	set_property $REST_PROXY_CFG "schema.registry.url" "http://$srconnect" 0
 	set_property $REST_PROXY_CFG "zookeeper.connect" "$zconnect" 0
+	set_property $REST_PROXY_CFG "bootstrap.servers" "${bconnect}" 0
 }
 
 # Configure the JAAS security and add it to the 
@@ -386,19 +387,32 @@ configure_control_center() {
 	local numBrokers=`echo ${brokers//,/ } | wc -w`
 	local numWorkers=`echo ${workers//,/ } | wc -w`
 
-		# When Control Center is hosted alongside brokers, 
-		# its data dir should be isolated.
-		# In other cases, allow a few more threads if we won't compete with 
-		# other services (Control Center deserves a bigger percentage of worker-0)
-	echo "$brokers" | grep -q -w "$THIS_HOST" 
-	if [ $? -eq 0 ] ; then
-		if [ -z "$CC_DATA_DIR" ] ; then
-			CC_DATA_DIR=/var/lib/confluent/control-center
-			mkdir -p $CC_DATA_DIR
-			chown --reference=$CP_HOME/etc $CC_DATA_DIR
+	CP_TOP=${CP_HOME}
+	[ ! -d $CP_HOME ] && CP_TOP=""
+
+		# Configure the local storage location
+		#	Put control center data on larger storage
+		#		(if available and not used for broker storage)
+	CC_DATA_DIR=${CC_DATA_DIR:-/var/lib/confluent/control-center}
+	if [ -n "$DATA_DIRS" ] ; then
+		echo "$brokers" | grep -q -w "$THIS_HOST"
+		if [ $? -ne 0 ] ; then
+			CC_DATA_DIR=${DATA_DIRS##* }
+			CC_DATA_DIR=${CC_DATA_DIR}/confluent/control-center
 		fi
-	elif [ $numWorkers -gt 1  -a  $ncpu -gt 8 ] ; then
-		set_property $CONTROL_CENTER_CFG "confluent.controlcenter.streams.num.stream.threads" "$ncpu" 
+	fi
+	mkdir -p $CC_DATA_DIR
+	chown --reference=$CP_TOP/etc/confluent-control-center $CC_DATA_DIR
+	set_property $CONTROL_CENTER_CFG "confluent.controlcenter.data.dir" "${CC_DATA_DIR}"
+
+		# When Control Center is NOT hosted alongside brokers,
+		# allow a few more threads if we won't compete with other
+		# services (Control Center deserves a bigger percentage of worker-0)
+	echo "$brokers" | grep -q -w "$THIS_HOST"
+	if [ $? -ne 0 ] ; then
+		if [ $numWorkers -gt 1  -a  $ncpu -gt 8 ] ; then
+			set_property $CONTROL_CENTER_CFG "confluent.controlcenter.streams.num.stream.threads" "$ncpu"
+		fi
 	fi
 
 		# REST properties for service
@@ -426,20 +440,9 @@ configure_control_center() {
 
 	set_property $CONTROL_CENTER_CFG "confluent.controlcenter.connect.cluster" "$wconnect" 0
 
-		# Put control center data on larger storage (if configured)
-	if [ -n "$DATA_DIRS" ] ; then
-		for d in $DATA_DIRS ; do
-			chown --reference=$CP_HOME/etc $d
-			[ -z "$CC_DATA_DIR" ] && CC_DATA_DIR=${d}/confluent/control-center
-		done
 
-		set_property $CONTROL_CENTER_CFG "confluent.controlcenter.data.dir" "${CC_DATA_DIR}"
-	fi
-
-		# Control Center requires a separate Kafka Connect cluster
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP=""
-
+		# Control Center installs separate Kafka Connect config files
+		# ... customize those as well
 	CC_CONNECT_CFG=$CP_TOP/etc/confluent-control-center/connect-cc.properties
 	cp -p $CP_TOP/etc/schema-registry/connect-avro-distributed.properties $CC_CONNECT_CFG
 
@@ -448,9 +451,7 @@ configure_control_center() {
 
 	set_property $CC_CONNECT_CFG "key.converter.schema.registry.url" "http://$srconnect" 0
 	set_property $CC_CONNECT_CFG "value.converter.schema.registry.url" "http://$srconnect" 0
-
-		# Set the data location to the last disk in our list
-	[ -n "$DATA_DIRS" ] && set_property $CC_CONNECT_CFG "confluent.controlcenter.data.dir" "${DATA_DIRS##* }"
+	set_property $CC_CONNECT_CFG "confluent.controlcenter.data.dir" "${CC_DATA_DIR}"
 }
 
 configure_workers() {

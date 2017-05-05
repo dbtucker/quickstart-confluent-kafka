@@ -24,7 +24,7 @@
 #
 # Simple script to retrieve jar files from a known S3 location or
 # top-level HTTP.  The jars are stored to 
-# $CP_HOME/share/java/kafka-connect-extras .
+# $CP_HOME/share/java/kafka-connect-${KC_LABEL:-extras} .
 #	NOTE: script must be run as user capable of creating/writing
 #	to that directory.
 #
@@ -75,7 +75,11 @@ fi
 
 S3_REGION=${S3_REGION:-us-west-2}
 
+# Parse the command line for
+#	$1 : source location from which to retrieve connectors
+#	$2 : [optional] shared directory for the jars (kafka-connect-${2}
 CONNECTOR_JAR_SRC=${1:-s3://confluent-cft-devel}
+KC_LABEL=${2:-extras}
 LFILE=${LFILE:-jars.lst}
 TARGET_DIR=/tmp/cdownload_$$
 
@@ -94,7 +98,9 @@ do_s3_retrieval() {
 # Curl against Amazon buckets is unhappy with double '/' characters,
 # so we always strip off the trailing one.
 #
-# We've also seen conditions where the first curl fails; so we'll
+# We've also seen conditions where the first curl fails (often with
+# hostname resolution problems ... strange given that we're 
+# most often accessing S3 buckets); so we'll
 # leverage the curl retry for a more reliable experience
 
 MAX_RETRIES=10
@@ -169,11 +175,11 @@ main()
 		# our download.  We can copy stuff into place.
 		#
 	if [ -f $TARGET_DIR/${LFILE} ] ; then
-		mkdir -p $CP_HOME/share/java/kafka-connect-extras
-		cp $TARGET_DIR/*.jar $CP_HOME/share/java/kafka-connect-extras
+		mkdir -p $CP_HOME/share/java/kafka-connect-${KC_LABEL}
+		cp $TARGET_DIR/*.jar $CP_HOME/share/java/kafka-connect-${KC_LABEL}
 		[ $? -eq 0 ] && rm -f ${TARGET_DIR}/* && rmdir ${TARGET_DIR}
 
-		chown -R --reference $CP_HOME/share/java $CP_HOME/share/java/kafka-connect-extras 
+		chown -R --reference $CP_HOME/share/java $CP_HOME/share/java/kafka-connect-${KC_LABEL} 
 	fi
 
 	echo "$0 script finished at "`date` >> $LOG

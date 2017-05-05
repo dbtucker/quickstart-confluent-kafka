@@ -132,6 +132,6 @@ if [ $? -eq 0 ] ; then
 	grep -e "-WorkerNodes-" -e "-WorkerStack-" ${CP_HOSTS_FILE} \
 		| awk '{print $1" WORKERNODE"NR-1" "$2" "$3" "$4}' > /tmp/workers
 else
-	cp ${CP_HOSTS_FILE} /tmp/workers
+	cp /tmp/brokers /tmp/workers
 fi
 
