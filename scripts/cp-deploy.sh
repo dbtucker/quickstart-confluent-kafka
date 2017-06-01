@@ -767,7 +767,7 @@ start_core_services() {
 	if [ $? -eq 0 ] ; then
 		wait_for_zk_quorum
 		if [ $? -ne 0 ] ; then
-        	echo "  WARNING: Zookeeper Quorum not formed; broker start may fail" | tee -a $LOG
+			echo "  WARNING: Zookeeper Quorum not formed; broker start may fail"
 		fi
 
 		if [ -x $CP_HOME/initscripts/cp-kafka-service ] ; then
@@ -1082,6 +1082,12 @@ main()
 	    echo "Insufficient specification for Confluent Platform cluster ... terminating script" >> $LOG
 		exit 1
 	fi
+
+		# Make sure THIS_HOST is set.
+	while [ -z "$THIS_HOST" ] ; do
+		sleep 3
+		THIS_HOST=$(hostname -s)
+	done
 
 	update_kadmin_user
 
