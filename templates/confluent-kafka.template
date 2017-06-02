@@ -836,6 +836,20 @@
                 ]
             }
         },
+        "BrokerIngressReplication": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "BrokerSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "9092",
+                "ToPort": "9093",
+                "SourceSecurityGroupId": {
+                    "Ref": "BrokerSecurityGroup"
+                }
+            }
+        },
         "BrokerWorkerIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
