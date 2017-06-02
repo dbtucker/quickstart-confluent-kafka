@@ -836,7 +836,7 @@
                 ]
             }
         },
-        "BrokerWorkerIngress": {
+        "BrokerIngressReplication": {
             "Type": "AWS::EC2::SecurityGroupIngress",
             "Properties": {
                 "GroupId": {
@@ -846,15 +846,22 @@
                 "FromPort": "9092",
                 "ToPort": "9093",
                 "SourceSecurityGroupId": {
-                    "Fn::If": [
-                        "IndependentWorkers",
-                        {
-                            "Ref": "WorkerSecurityGroup"
-                        },
-                        {
-                            "Ref": "BrokerSecurityGroup"
-                        }
-                    ]
+                    "Ref": "BrokerSecurityGroup"
+                }
+            }
+        },
+        "BrokerWorkerIngress": {
+            "Type": "AWS::EC2::SecurityGroupIngress",
+            "Condition": "IndependentWorkers",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "BrokerSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "9092",
+                "ToPort": "9093",
+                "SourceSecurityGroupId": {
+                    "Ref": "WorkerSecurityGroup"
                 }
             }
         },
