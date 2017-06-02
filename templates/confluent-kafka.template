@@ -852,6 +852,7 @@
         },
         "BrokerWorkerIngress": {
             "Type": "AWS::EC2::SecurityGroupIngress",
+            "Condition": "IndependentWorkers",
             "Properties": {
                 "GroupId": {
                     "Ref": "BrokerSecurityGroup"
@@ -860,15 +861,7 @@
                 "FromPort": "9092",
                 "ToPort": "9093",
                 "SourceSecurityGroupId": {
-                    "Fn::If": [
-                        "IndependentWorkers",
-                        {
-                            "Ref": "WorkerSecurityGroup"
-                        },
-                        {
-                            "Ref": "BrokerSecurityGroup"
-                        }
-                    ]
+                    "Ref": "WorkerSecurityGroup"
                 }
             }
         },
