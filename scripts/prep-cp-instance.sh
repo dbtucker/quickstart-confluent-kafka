@@ -176,9 +176,12 @@ install_os_tools() {
 		yum install -y clustershell jq
 		yum install -y mdadm
 
+			# Make sure we have XFS file system support
+		yum install -y xfsprogs
+
 			# Be careful with pip; python-pip package IS NOT
-			# the right one for Amazon Linux ... so we'll just
-			# assume it's there.
+			# the right one for Amazon Linux ... so we'll 
+			# only install if we absolutely have to.
 		which pip &> /dev/null
         [ $? -ne 0 ] && yum install -y python-pip
 		pip install --upgrade pip
