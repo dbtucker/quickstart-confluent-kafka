@@ -29,7 +29,7 @@
 #
 # INPUTS
 #	Confluent specification (in files)
-#		/tmp/cversion	: Confluent Version (default is 3.1.2)
+#		/tmp/cversion	: Confluent Version (default is 3.2.2)
 #		/tmp/cedition	: Enterprise or OpenSource (default is OpenSource)
 #	Other details
 #		Confluent Admin user/group: $KADMIN_USER:$KADMIN_GROUP (defaults to kadmin:kadmin)
@@ -67,7 +67,7 @@ CP_HOME=${CP_HOME:-/opt/confluent}
 if [ -f /tmp/cversion ] ; then
 	CP_VERSION=$(cat /tmp/cversion)
 else
-	CP_VERSION=${CP_VERSION:-3.1.1}
+	CP_VERSION=${CP_VERSION:-3.2.2}
 fi
 CP_MINOR_VERSION=${CP_VERSION%.*}	# Keep track of "X.Y" version.
 
