@@ -28,10 +28,6 @@
         "ParameterValue": "Confluent Enterprise"
     },
     {
-        "ParameterKey": "ConfluentVersion",
-        "ParameterValue": "3.2.0"
-    },
-    {
         "ParameterKey": "KeyPairName",
         "ParameterValue": "$[alfred_getkeypair]"
     },

@@ -20,21 +20,21 @@ global:
   reporting: true
 tests:
   test1:
-    parameter_input: enterprise-3.2.0-brokersonly-ondemand-ephemeral-centos.json
+    parameter_input: enterprise-default-brokersonly-ondemand-ephemeral-centos.json
     regions:
       - ap-northeast-1
       - ap-northeast-2
       - ap-south-1
     template_file: confluent-kafka-master.template
   test2:
-    parameter_input: enterprise-3.2.0-brokerszookeepers-ondemand-ephemeral-centos.json
+    parameter_input: enterprise-default-brokerszookeepers-ondemand-ephemeral-centos.json
     regions:
       - ap-southeast-1
       - ap-southeast-2
       - ca-central-1
     template_file: confluent-kafka-master.template
   test3:
-    parameter_input: enterprise-3.2.0-brokersworkerszookeepers-ondemand-ephemeral-ubuntu.json
+    parameter_input: enterprise-default-brokersworkerszookeepers-ondemand-ephemeral-ubuntu.json
     regions:
       - eu-central-1
       - eu-west-1
@@ -50,7 +50,7 @@ tests:
       - us-west-2
     template_file: confluent-kafka-master.template
   test5:
-    parameter_input: opensource-3.2.0-brokersworkerszookeepers-ondemand-ephemeral-ubuntu.json
+    parameter_input: opensource-default-brokersworkerszookeepers-ondemand-ephemeral-ubuntu.json
     regions:
       - eu-west-1
       - us-east-1

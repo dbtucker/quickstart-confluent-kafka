@@ -28,16 +28,12 @@
         "ParameterValue": "Confluent Enterprise"
     },
     {
-        "ParameterKey": "ConfluentVersion",
-        "ParameterValue": "3.2.0"
-    },
-    {
         "ParameterKey": "KeyPairName",
         "ParameterValue": "$[alfred_getkeypair]"
     },
     {
         "ParameterKey": "LinuxOSAMI",
-        "ParameterValue": "CentOS-7-HVM"
+        "ParameterValue": "Ubuntu-Server-16.04-LTS-HVM"
     },
     {
         "ParameterKey": "NumBrokers",
@@ -45,7 +41,7 @@
     },
     {
         "ParameterKey": "NumWorkers",
-        "ParameterValue": "0"
+        "ParameterValue": "3"
     },
     {
         "ParameterKey": "NumZookeepers",
