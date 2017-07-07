@@ -44,6 +44,7 @@
                         "NumBrokers",
                         "BrokerNodeInstanceType",
                         "BrokerNodeStorage",
+                        "BrokerNodeStorageType",
                         "BrokerNodeSpotPrice"
                     ]
                 },
@@ -91,6 +92,9 @@
                 },
                 "BrokerNodeStorage": {
                     "default": "Persistent Storage"
+                },
+                "BrokerNodeStorageType": {
+                    "default": "EBS Volume Type"
                 },
                 "ClusterName": {
                     "default": "Cluster Name"
@@ -195,12 +199,23 @@
             "Type": "String"
         },
         "BrokerNodeStorage": {
-            "ConstraintDescription": "No more than 1024 GiB per device (4 TiB per node).",
-            "Default": "0",
+            "ConstraintDescription": "No more than 4096 GiB per device (16 TiB per node).",
+            "Default": "512",
             "Description": "Allocated EBS storage for each block device (in GiB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
+            "MaxValue": "4096",
             "MinValue": "0",
             "Type": "Number"
+        },
+        "BrokerNodeStorageType": {
+            "AllowedValues": [
+                "",
+                "gp2",
+                "sc1",
+                "st1"
+            ],
+            "Default": "st1",
+            "Description": "EBS volume type (blank indicates default type for ami/region).  sc1 and st1 volumes must be at least 500 GB in size.",
+            "Type": "String"
         },
         "ClusterName": {
             "AllowedPattern": "([A-Za-z]{1}[0-9A-Za-z_-]*)",
@@ -338,10 +353,10 @@
             "Type": "String"
         },
         "WorkerNodeStorage": {
-            "ConstraintDescription": "No more than 1024 GiB per device (4 TiB per node).",
+            "ConstraintDescription": "No more than 4096 GiB per device (16 TiB per node).",
             "Default": "0",
             "Description": "Allocated EBS storage for each block device (in GiB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
+            "MaxValue": "4096",
             "MinValue": "0",
             "Type": "Number"
         },
@@ -367,10 +382,10 @@
             "Type": "String"
         },
         "ZookeeperNodeStorage": {
-            "ConstraintDescription": "No more than 1024 GiB per device (4 TiB per node).",
+            "ConstraintDescription": "No more than 4096 GiB per device (16 TiB per node).",
             "Default": "0",
             "Description": "Allocated EBS storage for each block device (in GiB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
+            "MaxValue": "4096",
             "MinValue": "0",
             "Type": "Number"
         }
@@ -615,6 +630,9 @@
                     },
                     "PersistentStorage": {
                         "Ref": "BrokerNodeStorage"
+                    },
+                    "PersistentStorageType": {
+                        "Ref": "BrokerNodeStorageType"
                     },
                     "QSS3BucketName": {
                         "Ref": "QSS3BucketName"

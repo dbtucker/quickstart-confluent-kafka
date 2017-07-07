@@ -81,9 +81,12 @@
         },
         "NodeInstanceType": {
             "AllowedValues": [
+                "t2.medium",
+                "t2.large",
                 "m3.medium",
                 "m3.large",
                 "m3.xlarge",
+                "m3.2xlarge",
                 "m4.large",
                 "m4.xlarge",
                 "m4.2xlarge",
@@ -126,12 +129,23 @@
             "Type": "String"
         },
         "PersistentStorage": {
-            "ConstraintDescription": "No more than 1024 GB per device (4 TB per node).",
+            "ConstraintDescription": "No more than 4096 GB per device (16 TB per node).",
             "Default": "0",
             "Description": "Allocated EBS storage for each block device (in GB; 4 devs per node); 0 indicates ephemeral storage only",
-            "MaxValue": "1024",
+            "MaxValue": "4096",
             "MinValue": "0",
             "Type": "Number"
+        },
+        "PersistentStorageType": {
+            "AllowedValues": [
+                "",
+                "gp2",
+                "sc1",
+                "st1"
+            ],
+            "Default": "",
+            "Description": "EBS volume type (blank indicates default type for ami/region).  sc1 and st1 volumes must be at least 500 GB in size.",
+            "Type": "String"
         },
         "QSS3BucketName": {
             "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
@@ -326,6 +340,14 @@
                     "Ref": "NodeSpotPrice"
                 },
                 "0.00"
+            ]
+        },
+        "UseDefaultVT": {
+            "Fn::Equals": [
+                {
+                    "Ref": "PersistentStorageType"
+                },
+                ""
             ]
         }
     },
@@ -784,6 +806,13 @@
                                     "VolumeSize": {
                                         "Ref": "PersistentStorage"
                                     },
+                                    "VolumeType": {
+                                        "Fn::If": [ 
+                                            "UseDefaultVT",
+                                            { "Ref": "AWS::NoValue" }, 
+                                            { "Ref": "PersistentStorageType" }
+                                        ]
+                                    },
                                     "DeleteOnTermination": "True"
                                 }
                             },
@@ -792,6 +821,13 @@
                                 "Ebs": {
                                     "VolumeSize": {
                                         "Ref": "PersistentStorage"
+                                    },
+                                    "VolumeType": {
+                                        "Fn::If": [ 
+                                            "UseDefaultVT",
+                                            { "Ref": "AWS::NoValue" }, 
+                                            { "Ref": "PersistentStorageType" }
+                                        ]
                                     },
                                     "DeleteOnTermination": "True"
                                 }
@@ -802,6 +838,13 @@
                                     "VolumeSize": {
                                         "Ref": "PersistentStorage"
                                     },
+                                    "VolumeType": {
+                                        "Fn::If": [ 
+                                            "UseDefaultVT",
+                                            { "Ref": "AWS::NoValue" }, 
+                                            { "Ref": "PersistentStorageType" }
+                                        ]
+                                    },
                                     "DeleteOnTermination": "True"
                                 }
                             },
@@ -810,6 +853,13 @@
                                 "Ebs": {
                                     "VolumeSize": {
                                         "Ref": "PersistentStorage"
+                                    },
+                                    "VolumeType": {
+                                        "Fn::If": [ 
+                                            "UseDefaultVT",
+                                            { "Ref": "AWS::NoValue" }, 
+                                            { "Ref": "PersistentStorageType" }
+                                        ]
                                     },
                                     "DeleteOnTermination": "True"
                                 }
