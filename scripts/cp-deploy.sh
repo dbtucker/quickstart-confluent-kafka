@@ -69,7 +69,7 @@ LOG=/tmp/cp-deploy.log
 murl_top=http://instance-data/latest/meta-data
 
 THIS_FQDN=$(curl -f -s $murl_top/hostname)
-[ -z "${THIS_FQDN}" ] && THIS_FQDN=`hostname --fqdn`
+[ -z "${THIS_FQDN}" ] && THIS_FQDN=$(hostname --fqdn)
 THIS_HOST=${THIS_FQDN%%.*}
 
 
@@ -78,7 +78,15 @@ THIS_HOST=${THIS_FQDN%%.*}
 KADMIN_USER=${KADMIN_USER:-kadmin}
 KADMIN_GROUP=${KADMIN_GROUP:-kadmin}
 
+# Bite the bullet, since cp-install.sh supports tarball or package installs
 CP_HOME=${CP_HOME:-/opt/confluent}
+if [ -d $CP_HOME ] ; then
+	CP_BIN_DIR=$CP_HOME/bin
+	CP_ETC_DIR=$CP_HOME/etc
+else
+	CP_BIN_DIR=/usr/bin
+	CP_ETC_DIR=/etc
+fi
 
 if [ -f /tmp/clustername ] ; then
 	CLUSTERNAME=$(awk '{print $1}' /tmp/clustername)
@@ -115,21 +123,36 @@ passwdEOF
 	export KADMIN_PASSWD
 }
 
+# For those circumstances where a minor problem exists in the 
+# VM Image, fixing it with the template script is simpler than
+# publishing a new AMI.   The logic here should be BULLETPROOF.
+#
+patch_confluent_installation() {
+	if [ -d $CP_HOME/share/java ] ; then
+		CP_JAVA_DIR=${CP_HOME}/share/java
+	else
+		CP_JAVA_DIR=/usr/share/java
+	fi
+
+		# Known problem with 3.2.2 ... conflicting versions of servlet-api jar
+    echo "Applying servlet-api patch to 3.2.2 (if necessary)" | tee -a $LOG
+	if [ -f ${CP_JAVA_DIR}/kafka/javax.servlet-api-3.*.jar ] ; then
+    	echo "  removing servlet-api-2*.jar files from kafka-connect-* libraries" | tee -a $LOG
+		rm -f ${CP_JAVA_DIR}/kafka-connect-*/servlet-api-2*.jar
+	fi
+}
 
 # Locate the configuration files (since we use them all the time)
 # Should be called ONLY after the software has been installed.
 locate_cfg() {
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP=""
-
-	ZK_CFG=${CP_TOP}/etc/kafka/zookeeper.properties
-	BROKER_CFG=${CP_TOP}/etc/kafka/server.properties
-	REST_PROXY_CFG=${CP_TOP}/etc/kafka-rest/kafka-rest.properties
-	SCHEMA_REG_CFG=${CP_TOP}/etc/schema-registry/schema-registry.properties
-	KAFKA_CONNECT_CFG=${CP_TOP}/etc/kafka/connect-distributed.properties
-	LEGACY_CONSUMER_CFG=${CP_TOP}/etc/kafka/consumer.properties
-	LEGACY_PRODUCER_CFG=${CP_TOP}/etc/kafka/producer.properties
-	CONTROL_CENTER_CFG=${CP_TOP}/etc/confluent-control-center/control-center.properties
+	ZK_CFG=${CP_ETC_DIR}/kafka/zookeeper.properties
+	BROKER_CFG=${CP_ETC_DIR}/kafka/server.properties
+	REST_PROXY_CFG=${CP_ETC_DIR}/kafka-rest/kafka-rest.properties
+	SCHEMA_REG_CFG=${CP_ETC_DIR}/schema-registry/schema-registry.properties
+	KAFKA_CONNECT_CFG=${CP_ETC_DIR}/kafka/connect-distributed.properties
+	LEGACY_CONSUMER_CFG=${CP_ETC_DIR}/kafka/consumer.properties
+	LEGACY_PRODUCER_CFG=${CP_ETC_DIR}/kafka/producer.properties
+	CONTROL_CENTER_CFG=${CP_ETC_DIR}/confluent-control-center/control-center.properties
 }
 
 # Locate the start scripts for any changes.
@@ -240,17 +263,18 @@ configure_confluent_zk() {
 	[ $? -ne 0 ] && return 0
 
 		# Simple deployment : ZK data in $CP_HOME/zkdata
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP=""
+	CP_ZKDATA_DIR=${CP_HOME}/zkdata
+	[ ! -d $CP_HOME ] && CP_ZKDATA_DIR=/zkdata
 
-	mkdir -p $CP_TOP/zkdata
-	chown --reference=$CP_TOP/etc $CP_TOP/zkdata
+	mkdir -p $CP_ZKDATA_DIR
+	chown --reference=$CP_ETC_DIR $CP_ZKDATA_DIR
 
-	set_property $ZK_CFG "dataDir" "$CP_TOP/zkdata"
+	set_property $ZK_CFG "dataDir" "$CP_ZKDATA_DIR"
+	set_property $ZK_CFG "autopurge.purgeInterval" 72		# purge the stale snapshots every 3 days
 
 	if [ $myid -gt 0 ] ; then
-		echo $myid > $CP_TOP/zkdata/myid
-		chown --reference=$CP_TOP/etc $CP_TOP/zkdata/myid
+		echo $myid > $CP_ZKDATA_DIR/myid
+		chown --reference=$CP_ETC_DIR $CP_ZKDATA_DIR/myid
 	fi
 }
 
@@ -287,7 +311,7 @@ configure_kafka_broker() {
 
 	if [ -n "$DATA_DIRS" ] ; then
 		for d in $DATA_DIRS ; do
-			chown --reference=$CP_HOME/etc $d
+			chown --reference=$CP_ETC_DIR $d
 		done
 
 		set_property $BROKER_CFG "log.dirs" "${DATA_DIRS// /,}"
@@ -315,7 +339,7 @@ configure_kafka_broker() {
 
 		# Enable replicator settings if the rebalancer is present
 	which confluent-rebalancer &> /dev/null
-	if [ $? -eq 0  -o  -x $CP_HOME/bin/confluent-rebalancer ] ; then
+	if [ $? -eq 0  -o  -x $CP_BIN_DIR/confluent-rebalancer ] ; then
 		mr_topic_replicas=3
 		[ $mr_topic_replicas -gt $numBrokers ] && mr_topic_replicas=$numBrokers
 
@@ -337,13 +361,26 @@ configure_schema_registry() {
 configure_rest_proxy() {
 	[ ! -f $REST_PROXY_CFG ] && return 1
 
-	set_property $REST_PROXY_CFG "id" "kafka-rest-${CLUSTERNAME}" 0
+	myid=-1
+	widx=0
+	for wnode in ${workers//,/ } ; do
+		[ $bnode = $THIS_HOST ] && myid=$widx
+		widx=$[widx+1]
+	done
+
+	if [ $myid -ge 0 ] ; then
+		set_property $REST_PROXY_CFG "id" "kafka-rest-${CLUSTERNAME}-${myid}" 0
+	fi
 
 		# TBD : get much smarter about Schema Registry Port
 		# Should grab this from zookeeper if it's available
 	set_property $REST_PROXY_CFG "schema.registry.url" "http://$srconnect" 0
 	set_property $REST_PROXY_CFG "zookeeper.connect" "$zconnect" 0
 	set_property $REST_PROXY_CFG "bootstrap.servers" "${bconnect}" 0
+
+		# TBD (when the startup script includes interceptor classpath)
+	# set_property $REST_PROXY_CFG "consumer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor" 0
+	# set_property $REST_PROXY_CFG "producer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor" 0
 }
 
 # Configure the JAAS security and add it to the 
@@ -387,9 +424,6 @@ configure_control_center() {
 	local numBrokers=`echo ${brokers//,/ } | wc -w`
 	local numWorkers=`echo ${workers//,/ } | wc -w`
 
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP=""
-
 		# Configure the local storage location
 		#	Put control center data on larger storage
 		#		(if available and not used for broker storage)
@@ -402,7 +436,7 @@ configure_control_center() {
 		fi
 	fi
 	mkdir -p $CC_DATA_DIR
-	chown --reference=$CP_TOP/etc/confluent-control-center $CC_DATA_DIR
+	chown --reference=$CP_ETC_DIR/confluent-control-center $CC_DATA_DIR
 	set_property $CONTROL_CENTER_CFG "confluent.controlcenter.data.dir" "${CC_DATA_DIR}"
 
 		# When Control Center is NOT hosted alongside brokers,
@@ -443,8 +477,8 @@ configure_control_center() {
 
 		# Control Center installs separate Kafka Connect config files
 		# ... customize those as well
-	CC_CONNECT_CFG=$CP_TOP/etc/confluent-control-center/connect-cc.properties
-	cp -p $CP_TOP/etc/schema-registry/connect-avro-distributed.properties $CC_CONNECT_CFG
+	CC_CONNECT_CFG=$CP_ETC_DIR/confluent-control-center/connect-cc.properties
+	cp -p $CP_ETC_DIR/schema-registry/connect-avro-distributed.properties $CC_CONNECT_CFG
 
 	set_property $CC_CONNECT_CFG "consumer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor" 0
 	set_property $CC_CONNECT_CFG "producer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor" 0
@@ -468,9 +502,24 @@ configure_workers() {
 		set_property $LEGACY_PRODUCER_CFG "interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor" 
 	fi
 
-		# We'll default to the Avro converters since we know
-		# we'll have the Schema Registry .   Also enable the 
-		# interceptors for Control Center Monitoring
+		# Configure the Kafka Connect workers
+		#   We'll default to the Avro converters since we know
+		#   we'll have the Schema Registry .   Also enable the 
+		#   interceptors for Control Center Monitoring
+
+		# Starting with CP 3.3, Kafka Connect supports classpath isolation.  We'll put 
+		# extra connectors in here. 
+		# NOTE: this should match setting in cp-retrieve-connect-jars.sh
+	grep -q -e "plugin.path" $KAFKA_CONNECT_CFG
+	if [ $? -eq 0 ] ; then
+		if [ -d $CP_HOME/share/java ] ; then
+			KC_PLUGIN_DIR=${CP_HOME}/share/java/kc-plugins
+		else
+			KC_PLUGIN_DIR=/usr/share/java/kc-plugins
+		fi
+		mkdir $KC_PLUGIN_DIR
+	fi
+
 	if [ -f $KAFKA_CONNECT_CFG ] ; then
 		set_property $KAFKA_CONNECT_CFG "group.id" "${CLUSTERNAME}-connect-cluster"
 		set_property $KAFKA_CONNECT_CFG "bootstrap.servers" "${bconnect}"
@@ -484,20 +533,20 @@ configure_workers() {
 
 		set_property $KAFKA_CONNECT_CFG  "consumer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor" 
 		set_property $KAFKA_CONNECT_CFG  "producer.interceptor.classes" "io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor" 
+
+		[ -n "$KC_PLUGIN_DIR" ] && [ -d "$KC_PLUGIN_DIR" ] \
+			&& set_property $KAFKA_CONNECT_CFG "plugin.path" "$KC_PLUGIN_DIR"
 	fi
 
 		# There are multiple "connect-*.properties" files in
 		# the schema registry location that need to be updated as well
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP=""
-
-	for f in $CP_TOP/etc/schema-registry/connect-*.properties ; do
+	for f in $CP_ETC_DIR/schema-registry/connect-*.properties ; do
 		set_property $f "bootstrap.servers" "${bconnect}" 0
 		set_property $f "key.converter.schema.registry.url" "http://${srconnect}" 0
 		set_property $f "value.converter.schema.registry.url" "http://${srconnect}" 0
 	done
 
-	for f in $CP_TOP/etc/schema-registry/*-distributed.properties ; do
+	for f in $CP_ETC_DIR/schema-registry/*-distributed.properties ; do
 		set_property $KAFKA_CONNECT_CFG "group.id" "${CLUSTERNAME}-connect-cluster" 0
 	done
 }
@@ -647,7 +696,6 @@ update_service_heap_opts() {
 	fi
 }
 
-
 # Simple code to wait for formation of zookeeper quorum.
 # We know that the "kafka-topics" call to retrieve metadata
 # won't work until the quorum is formed ... so use that
@@ -666,11 +714,11 @@ wait_for_zk_quorum() {
 
 	else
     	SWAIT=$ZOOKEEPER_WAIT
-    	${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
+    	${CP_BIN_DIR}/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
     	while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
         	sleep $STIME
         	SWAIT=$[SWAIT - $STIME]
-    		${CP_TOP}/bin/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
+    		${CP_BIN_DIR}/kafka-topics --list --zookeeper ${zconnect} &> /dev/null
     	done
 
 		[ $SWAIT -le 0 ] && return 1
@@ -695,9 +743,6 @@ wait_for_brokers() {
 		[ $? -ne 0 ] && return 0
 	fi
 
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
     BROKER_WAIT=${1:-300}
     STIME=5
 
@@ -715,11 +760,11 @@ wait_for_brokers() {
 
 	else
 		SWAIT=$BROKER_WAIT
-		local runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
+		local runningBrokers=$( echo "ls /brokers/ids" | $CP_BIN_DIR/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
     	while [ ${runningBrokers:-0} -lt $targetBrokers  -a  $SWAIT -gt 0 ] ; do
         	sleep $STIME
         	SWAIT=$[SWAIT - $STIME]
-			runningBrokers=$( echo "ls /brokers/ids" | $CP_TOP/bin/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
+			runningBrokers=$( echo "ls /brokers/ids" | $CP_BIN_DIR/zookeeper-shell ${zconnect%%,*} | grep '^\[' | tr -d "[:punct:]" | wc -w )
     	done
 
 		[ $SWAIT -le 0 ] && return 1
@@ -743,11 +788,6 @@ wait_for_brokers() {
 #	and then stop with "/etc/init.d/cp-*-service"
 #
 start_core_services() {
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
-	BIN_DIR=$CP_TOP/bin
-
 	echo "$zknodes" | grep -q -w "$THIS_HOST" 
 	if [ $? -eq 0 ] ; then
 		if [ -x $CP_HOME/initscripts/cp-zk-service ] ; then
@@ -759,7 +799,7 @@ start_core_services() {
 #			/etc/init.d/cp-zk-service start
 			service cp-zk-service start
 		else
-			$BIN_DIR/zookeeper-server-start -daemon $ZK_CFG
+			$CP_BIN_DIR/zookeeper-server-start -daemon $ZK_CFG
 		fi
 	fi
 
@@ -767,7 +807,7 @@ start_core_services() {
 	if [ $? -eq 0 ] ; then
 		wait_for_zk_quorum
 		if [ $? -ne 0 ] ; then
-			echo "  WARNING: Zookeeper Quorum not formed; broker start may fail"
+        	echo "  WARNING: Zookeeper Quorum not formed; broker start may fail" | tee -a $LOG
 		fi
 
 		if [ -x $CP_HOME/initscripts/cp-kafka-service ] ; then
@@ -779,7 +819,7 @@ start_core_services() {
 #			/etc/init.d/cp-kafka-service start
 			service cp-kafka-service start
 		else
-			$BIN_DIR/kafka-server-start -daemon $BROKER_CFG
+			$CP_BIN_DIR/kafka-server-start -daemon $BROKER_CFG
 		fi
 	fi
 }
@@ -791,11 +831,6 @@ start_core_services() {
 # do some extra work and retry the startup command
 # multiple times if we don't see a successful start.
 start_worker_services() {
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
-	BIN_DIR=$CP_TOP/bin
-
 		# Schema registy on second worker (or first if there's only one)
 	numWorkers=$(echo "${workers//,/ }" | wc -w)
 	if [ $numWorkers -le 1 ] ; then
@@ -814,13 +849,13 @@ start_worker_services() {
 #			/etc/init.d/cp-schema-service start
 			service cp-schema-service start
 		else
-			local LOGS_DIR=${BIN_DIR}/../logs
+			local LOGS_DIR=${CP_BIN_DIR}/../logs
 			[ ! -d $LOGS_DIR ] && LOGS_DIR=/var/log
 
 			launch_attempt=1
 			curl -f -s http://localhost:8081
 			while [ $? -ne 0  -a  $launch_attempt -le 3 ] ; do 
-				$(cd $LOGS_DIR; $BIN_DIR/schema-registry-start -daemon $SCHEMA_REG_CFG > /dev/null)
+				$(cd $LOGS_DIR; $CP_BIN_DIR/schema-registry-start -daemon $SCHEMA_REG_CFG > /dev/null)
 				sleep 10
 
 				launch_attempt=$[launch_attempt+1]
@@ -840,13 +875,13 @@ start_worker_services() {
 #			/etc/init.d/cp-rest-service start
 			service cp-rest-service start
 		else
-			local LOGS_DIR=${BIN_DIR}/../logs
+			local LOGS_DIR=${CP_BIN_DIR}/../logs
 			[ ! -d $LOGS_DIR ] && LOGS_DIR=/var/log
 
 			launch_attempt=1
 			curl -f -s http://localhost:8082
 			while [ $? -ne 0  -a  $launch_attempt -le 3 ] ; do 
-				$(cd $LOGS_DIR; $BIN_DIR/kafka-rest-start -daemon $REST_PROXY_CFG > /dev/null)
+				$(cd $LOGS_DIR; $CP_BIN_DIR/kafka-rest-start -daemon $REST_PROXY_CFG > /dev/null)
 				sleep 10
 
 				launch_attempt=$[launch_attempt+1]
@@ -869,7 +904,7 @@ start_worker_services() {
 			launch_attempt=1
 			curl -f -s http://localhost:8083
 			while [ $? -ne 0  -a  $launch_attempt -le 3 ] ; do 
-				$BIN_DIR/connect-distributed -daemon $KAFKA_CONNECT_CFG
+				$CP_BIN_DIR/connect-distributed -daemon $KAFKA_CONNECT_CFG
 				sleep 10
 
 				launch_attempt=$[launch_attempt+1]
@@ -880,11 +915,6 @@ start_worker_services() {
 }
 
 start_control_center() {
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
-	BIN_DIR=$CP_TOP/bin
-
 		# Control Center on first worker only
 		# Control Center is VERY FRAGILE on start-up,
 		#	so we'll isolate the start here in case we need to restart.
@@ -899,10 +929,10 @@ start_control_center() {
 			service control-center-service start
 			[ $? -ne 0 ] && service control-center-service start
 		else
-			local LOGS_DIR=${BIN_DIR}/../logs
+			local LOGS_DIR=${CP_BIN_DIR}/../logs
 			[ ! -d $LOGS_DIR ] && LOGS_DIR=/var/log
 
-			$(cd $LOGS_DIR; $BIN_DIR/control-center-start -daemon $CONTROL_CENTER_CFG > /dev/null)
+			$(cd $LOGS_DIR; $CP_BIN_DIR/control-center-start -daemon $CONTROL_CENTER_CFG > /dev/null)
 		fi
 	fi
 }
@@ -927,12 +957,9 @@ create_topic_safely() {
 	local replicas=$3
 	local cleanup_policy=$4
 
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
 	[ -n "$cleanup_policy" ] && CP_ARG="--config cleanup.policy=$cleanup_policy" 
 
-	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+	$CP_BIN_DIR/kafka-topics --zookeeper ${zconnect} \
 		--create --if-not-exists \
 		--topic $this_topic \
 		--replication-factor ${replicas} --partitions ${partitions} $CP_ARG
@@ -940,7 +967,7 @@ create_topic_safely() {
 		this_retry=$[this_retry+1]
 		sleep $RETRY_INTERVAL_SEC
 
-		$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+		$CP_BIN_DIR/kafka-topics --zookeeper ${zconnect} \
 			--create --if-not-exists \
 			--topic $this_topic \
 			--replication-factor ${replicas} --partitions ${partitions}
@@ -960,17 +987,14 @@ wait_for_topic() {
 
 	[ -z "$topic" ] && return
 
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
     SWAIT=$TOPIC_WAIT
     STIME=5
-	${CP_TOP}/bin/kafka-topics --zookeeper ${zconnect} \
+	${CP_BIN_DIR}/kafka-topics --zookeeper ${zconnect} \
 		--describe --topic ${topic} | grep -q "^Topic:"
     while [ $? -ne 0  -a  $SWAIT -gt 0 ] ; do
         sleep $STIME
         SWAIT=$[SWAIT - $STIME]
-		${CP_TOP}/bin/kafka-topics --zookeeper ${zconnect} \
+		${CP_BIN_DIR}/kafka-topics --zookeeper ${zconnect} \
 			--describe --topic ${topic} | grep -q "^Topic:"
     done
 
@@ -1004,11 +1028,6 @@ create_worker_topics() {
 	local numBrokers=`echo ${brokers//,/ } | wc -w`
 	local numWorkers=`echo ${workers//,/ } | wc -w`
 
-	CP_TOP=${CP_HOME}
-	[ ! -d $CP_HOME ] && CP_TOP="/usr"
-
-	BIN_DIR=$CP_TOP/bin
-
 		# Connect requires some simple topics.  Be sure
 		# these align with any overrides when customzing
 		# the connect-distributed.properties above.
@@ -1019,7 +1038,7 @@ create_worker_topics() {
 	[ $connect_topic_replicas -gt $numBrokers ] && connect_topic_replicas=$numBrokers
 
 	connect_config_partitions=1
-#	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+#	$CP_BIN_DIR/kafka-topics --zookeeper ${zconnect} \
 #		--create --topic connect-configs \
 #		--replication-factor ${connect_topic_replicas} \
 #		--partitions ${connect_config_partitions} \
@@ -1029,7 +1048,7 @@ create_worker_topics() {
 
 	connect_offsets_partitions=50
 	[ $numBrokers -lt 6 ] && connect_offsets_partitions=$[numBrokers*8] 
-#	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+#	$CP_BIN_DIR/kafka-topics --zookeeper ${zconnect} \
 #		--create --topic connect-offsets \
 #		--replication-factor ${connect_topic_replicas} \
 #		--partitions ${connect_offsets_partitions} \
@@ -1038,7 +1057,7 @@ create_worker_topics() {
 		${connect_offsets_partitions} ${connect_topic_replicas} compact
 
 	connect_status_partitions=10
-#	$CP_TOP/bin/kafka-topics --zookeeper ${zconnect} \
+#	$CP_BIN_DIR/kafka-topics --zookeeper ${zconnect} \
 #		--create --topic connect-status \
 #		--replication-factor ${connect_topic_replicas} \
 #		--partitions ${connect_status_partitions} \
@@ -1083,7 +1102,7 @@ main()
 		exit 1
 	fi
 
-		# Make sure THIS_HOST is set.
+		# Make sure THIS_HOST is set.  Necessary when DNS resolution is slow.
 	while [ -z "$THIS_HOST" ] ; do
 		sleep 3
 		THIS_HOST=$(hostname -s)
@@ -1091,7 +1110,7 @@ main()
 
 	update_kadmin_user
 
-		# Make sure DATA_DIRS is set.   If it is not # passed in (or obvious
+		# Make sure DATA_DIRS is set.   If it is not passed in (or obvious
 		# from the log file generated when we initialized the storage), 
 		# we can simply look for all "data*" directories # in $CP_HOME. 
 		# $CP_HOME/data*  will have been created (or linked) by prepare-disks.sh script.
@@ -1101,9 +1120,9 @@ main()
 		fi
 	fi
 
-	if [ -z "$DATA_DIRS" ] ; then
-		DATA_DIRS=`ls -d $CP_HOME/data*`
-	fi
+	[ -z "$DATA_DIRS" ] && DATA_DIRS=$(ls -d $CP_HOME/data*)
+
+	patch_confluent_installation
 
 	locate_cfg
 	locate_start_scripts
