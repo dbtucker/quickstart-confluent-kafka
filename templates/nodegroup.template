@@ -2,6 +2,16 @@
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "CloudFormation sub-template for Auto-scaling group deployment",
     "Parameters": {
+        "AssignPublicIP": {
+            "AllowedValues": [
+              "true",
+              "false"
+            ],
+            "ConstraintDescription": "Either true or false",
+            "Default": "true",
+            "Description": "Allociate a public IP address to each instance",
+            "Type": "String"
+        },
         "BootDiskSize": {
             "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes",
             "Default": "24",
@@ -920,7 +930,9 @@
                 "KeyName": {
                     "Ref": "KeyPairName"
                 },
-                "AssociatePublicIpAddress": "true",
+                "AssociatePublicIpAddress": {
+                    "Ref": "AssignPublicIP"
+                },
                 "IamInstanceProfile": {
                     "Ref": "InstanceProfile"
                 },

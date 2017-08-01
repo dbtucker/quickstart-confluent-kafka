@@ -35,7 +35,8 @@
                     "Parameters": [
                         "KeyPairName",
                         "LinuxOSAMI",
-                        "BootDiskSize"
+                        "BootDiskSize",
+                        "AssignPublicIP"
                     ]
                 },
                 {
@@ -83,6 +84,9 @@
                 }
             ],
             "ParameterLabels": {
+                "AssignPublicIP": {
+                    "default": "Allocate a public IP for each instance"
+                },
                 "AvailabilityZones": {
                     "default": "Availability Zones"
                 },
@@ -171,6 +175,16 @@
         }
     },
     "Parameters": {
+        "AssignPublicIP": {
+            "AllowedValues": [
+              "true",
+              "false"
+            ],
+            "ConstraintDescription": "Either true or false",
+            "Default": "true",
+            "Description": "Allociate a public IP address to each instance",
+            "Type": "String"
+        },
         "AvailabilityZones": {
             "Description": "List of Availability Zones to use for the subnets in the VPC. Note: The logical order is preserved and only 2 AZs are used for this deployment.",
             "Type": "List<AWS::EC2::AvailabilityZone::Name>"
@@ -560,6 +574,9 @@
                     ]
                 },
                 "Parameters": {
+                    "AssignPublicIP": {
+                        "Ref": "AssignPublicIP"
+                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
