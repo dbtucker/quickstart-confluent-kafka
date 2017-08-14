@@ -455,6 +455,14 @@
         }
     },
     "Conditions": {
+        "PrivateSubnetCondition": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AssignPublicIP"
+                },
+                "false"
+            ]
+        },
         "PublicSubnetCondition": {
             "Fn::Equals": [
                 {
@@ -567,10 +575,26 @@
                     },
                     "NumberOfAZs": "2",
                     "PrivateSubnet1ACIDR": {
-                        "Ref": "PrivateSubnet1CIDR"
+                        "Fn::If": [
+                            "PrivateSubnetCondition",
+                            {
+                                "Ref": "PrivateSubnet1CIDR"
+                            },
+                            {
+                                "Ref" : "AWS::NoValue"
+                            }
+                        ]
                     },
                     "PrivateSubnet2ACIDR": {
-                        "Ref": "PrivateSubnet2CIDR"
+                        "Fn::If": [
+                            "PrivateSubnetCondition",
+                            {
+                                "Ref": "PrivateSubnet2CIDR"
+                            },
+                            {
+                                "Ref" : "AWS::NoValue"
+                            }
+                        ]
                     },
                     "PublicSubnet1CIDR": {
                         "Ref": "PublicSubnet1CIDR"
