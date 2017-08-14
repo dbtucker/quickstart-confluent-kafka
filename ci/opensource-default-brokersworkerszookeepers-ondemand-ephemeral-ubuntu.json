@@ -1,5 +1,9 @@
 [
     {
+        "ParameterKey": "AssignPublicIP",
+        "ParameterValue": "true"
+    },
+    {
         "ParameterKey": "AvailabilityZones",
         "ParameterValue": "$[alfred_getaz_2]"
     },
@@ -50,6 +54,14 @@
     {
         "ParameterKey": "NumZookeepers",
         "ParameterValue": "3"
+    },
+    {
+        "ParameterKey": "PrivateSubnet1CIDR",
+        "ParameterValue": "10.0.0.0/19"
+    },
+    {
+        "ParameterKey": "PrivateSubnet2CIDR",
+        "ParameterValue": "10.0.32.0/19"
     },
     {
         "ParameterKey": "PublicSubnet1CIDR",
