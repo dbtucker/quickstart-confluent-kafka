@@ -462,14 +462,6 @@
                 },
                 "false"
             ]
-        },
-        "PublicSubnetCondition": {
-            "Fn::Equals": [
-                {
-                    "Ref": "AssignPublicIP"
-                },
-                "true"
-            ]
         }
     },
     "Mappings": {
@@ -696,34 +688,34 @@
                             [
                                 {
                                     "Fn::If": [
-                                        "PublicSubnetCondition",
+                                        "PrivateSubnetCondition",
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PrivateSubnet1AID"
+                                            ]
+                                        },
                                         {
                                             "Fn::GetAtt": [
                                                 "VPCStack",
                                                 "Outputs.PublicSubnet1ID"
                                             ]
                                         },
-                                        {
-                                            "Fn::GetAtt": [
-                                                "VPCStack",
-                                                "Outputs.PrivateSubnet1ID"
-                                            ]
-                                        },
                                     ]
                                 },
                                 {
                                     "Fn::If": [
-                                        "PublicSubnetCondition",
+                                        "PrivateSubnetCondition",
                                         {
                                             "Fn::GetAtt": [
                                                 "VPCStack",
-                                                "Outputs.PublicSubnet2ID"
+                                                "Outputs.PrivateSubnet2AID"
                                             ]
                                         },
                                         {
                                             "Fn::GetAtt": [
                                                 "VPCStack",
-                                                "Outputs.PrivateSubnet2ID"
+                                                "Outputs.PublicSubnet2ID"
                                             ]
                                         },
                                     ]
