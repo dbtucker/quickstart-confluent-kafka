@@ -671,27 +671,37 @@
                             ",",
                             [
                                 {
-                                    "Fn::GetAtt": [
-                                        "VPCStack",
+                                    "Fn::If": [
+                                        "PublicSubnetCondition",
                                         {
-                                            "Fn::If": [
-                                                "PublicSubnetCondition",
-                                                "Outputs.PublicSubnet1ID",
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PublicSubnet1ID"
+                                            ]
+                                        },
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
                                                 "Outputs.PrivateSubnet1ID"
                                             ]
-                                        }
+                                        },
                                     ]
                                 },
                                 {
-                                    "Fn::GetAtt": [
-                                        "VPCStack",
+                                    "Fn::If": [
+                                        "PublicSubnetCondition",
                                         {
-                                            "Fn::If": [
-                                                "PublicSubnetCondition",
-                                                "Outputs.PublicSubnet2ID",
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PublicSubnet2ID"
+                                            ]
+                                        },
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
                                                 "Outputs.PrivateSubnet2ID"
                                             ]
-                                        }
+                                        },
                                     ]
                                 }
                             ]
