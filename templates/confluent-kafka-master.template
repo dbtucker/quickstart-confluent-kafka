@@ -561,7 +561,13 @@
                             }
                         ]
                     },
-                    "CreatePrivateSubnets": "false",
+                    "CreatePrivateSubnets": {
+                        "Fn::If": [
+                            "PrivateSubnetCondition",
+                            "true",
+                            "false"
+                        ]
+                    },
                     "KeyPairName": {
                         "Ref": "KeyPairName"
                     },
