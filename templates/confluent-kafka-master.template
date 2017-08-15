@@ -11,6 +11,8 @@
                     "Parameters": [
                         "AvailabilityZones",
                         "VPCCIDR",
+                        "PrivateSubnet1CIDR",
+                        "PrivateSubnet2CIDR",
                         "PublicSubnet1CIDR",
                         "PublicSubnet2CIDR",
                         "RemoteAccessCIDR",
@@ -35,7 +37,8 @@
                     "Parameters": [
                         "KeyPairName",
                         "LinuxOSAMI",
-                        "BootDiskSize"
+                        "BootDiskSize",
+                        "AssignPublicIP"
                     ]
                 },
                 {
@@ -83,6 +86,9 @@
                 }
             ],
             "ParameterLabels": {
+                "AssignPublicIP": {
+                    "default": "Allocate a public IP for each instance"
+                },
                 "AvailabilityZones": {
                     "default": "Availability Zones"
                 },
@@ -128,6 +134,12 @@
                 "NumZookeepers": {
                     "default": "Zookeeper count"
                 },
+                "PrivateSubnet1CIDR": {
+                    "default": "Private Subnet 1 CIDR"
+                },
+                "PrivateSubnet2CIDR": {
+                    "default": "Private Subnet 2 CIDR"
+                },
                 "PublicSubnet1CIDR": {
                     "default": "Public Subnet 1 CIDR"
                 },
@@ -171,6 +183,16 @@
         }
     },
     "Parameters": {
+        "AssignPublicIP": {
+            "AllowedValues": [
+              "true",
+              "false"
+            ],
+            "ConstraintDescription": "Either true or false",
+            "Default": "true",
+            "Description": "Allociate a public IP address to each instance",
+            "Type": "String"
+        },
         "AvailabilityZones": {
             "Description": "List of Availability Zones to use for the subnets in the VPC. Note: The logical order is preserved and only 2 AZs are used for this deployment.",
             "Type": "List<AWS::EC2::AvailabilityZone::Name>"
@@ -304,6 +326,20 @@
             "Description": "Number of independent Zookeepers (if 0, zookeeper will be deployed on the Kafka brokers)",
             "Type": "String"
         },
+        "PrivateSubnet1CIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Default": "10.0.0.0/19",
+            "Description": "CIDR block for private subnet 1 located in Availability Zone 1.",
+            "Type": "String"
+        },
+        "PrivateSubnet2CIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
+            "Default": "10.0.32.0/19",
+            "Description": "CIDR block for private subnet 2 located in Availability Zone 2.",
+            "Type": "String"
+        },
         "PublicSubnet1CIDR": {
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
             "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/16-28",
@@ -418,6 +454,16 @@
             "Type": "Number"
         }
     },
+    "Conditions": {
+        "PrivateSubnetCondition": {
+            "Fn::Equals": [
+                {
+                    "Ref": "AssignPublicIP"
+                },
+                "false"
+            ]
+        }
+    },
     "Mappings": {
         "AWSInfoRegionMap": {
             "ap-northeast-1": {
@@ -515,11 +561,39 @@
                             }
                         ]
                     },
-                    "CreatePrivateSubnets": "false",
+                    "CreatePrivateSubnets": {
+                        "Fn::If": [
+                            "PrivateSubnetCondition",
+                            "true",
+                            "false"
+                        ]
+                    },
                     "KeyPairName": {
                         "Ref": "KeyPairName"
                     },
                     "NumberOfAZs": "2",
+                    "PrivateSubnet1ACIDR": {
+                        "Fn::If": [
+                            "PrivateSubnetCondition",
+                            {
+                                "Ref": "PrivateSubnet1CIDR"
+                            },
+                            {
+                                "Ref" : "AWS::NoValue"
+                            }
+                        ]
+                    },
+                    "PrivateSubnet2ACIDR": {
+                        "Fn::If": [
+                            "PrivateSubnetCondition",
+                            {
+                                "Ref": "PrivateSubnet2CIDR"
+                            },
+                            {
+                                "Ref" : "AWS::NoValue"
+                            }
+                        ]
+                    },
                     "PublicSubnet1CIDR": {
                         "Ref": "PublicSubnet1CIDR"
                     },
@@ -560,6 +634,9 @@
                     ]
                 },
                 "Parameters": {
+                    "AssignPublicIP": {
+                        "Ref": "AssignPublicIP"
+                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
@@ -616,15 +693,37 @@
                             ",",
                             [
                                 {
-                                    "Fn::GetAtt": [
-                                        "VPCStack",
-                                        "Outputs.PublicSubnet1ID"
+                                    "Fn::If": [
+                                        "PrivateSubnetCondition",
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PrivateSubnet1AID"
+                                            ]
+                                        },
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PublicSubnet1ID"
+                                            ]
+                                        },
                                     ]
                                 },
                                 {
-                                    "Fn::GetAtt": [
-                                        "VPCStack",
-                                        "Outputs.PublicSubnet2ID"
+                                    "Fn::If": [
+                                        "PrivateSubnetCondition",
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PrivateSubnet2AID"
+                                            ]
+                                        },
+                                        {
+                                            "Fn::GetAtt": [
+                                                "VPCStack",
+                                                "Outputs.PublicSubnet2ID"
+                                            ]
+                                        },
                                     ]
                                 }
                             ]

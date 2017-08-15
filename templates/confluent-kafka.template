@@ -33,7 +33,8 @@
                     "Parameters": [
                         "KeyPairName",
                         "LinuxOSAMI",
-                        "BootDiskSize"
+                        "BootDiskSize",
+                        "AssignPublicIP"
                     ]
                 },
                 {
@@ -81,6 +82,9 @@
                 }
             ],
             "ParameterLabels": {
+                "AssignPublicIP": {
+                    "default": "Allocate a public IP for each instance"
+                },
                 "BootDiskSize": {
                     "default": "Boot Disk Capacity (GiB)"
                 },
@@ -160,6 +164,16 @@
         }
     },
     "Parameters": {
+        "AssignPublicIP": {
+            "AllowedValues": [
+              "true",
+              "false"
+            ],
+            "ConstraintDescription": "Either true or false",
+            "Default": "true",
+            "Description": "Allociate a public IP address to each instance",
+            "Type": "String"
+        },
         "BootDiskSize": {
             "ConstraintDescription": "Deployment supports 8 to 128 GB for boot volumes",
             "Default": "24",
@@ -585,6 +599,9 @@
                     ]
                 },
                 "Parameters": {
+                    "AssignPublicIP": {
+                        "Ref": "AssignPublicIP"
+                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
@@ -679,6 +696,9 @@
                     ]
                 },
                 "Parameters": {
+                    "AssignPublicIP": {
+                        "Ref": "AssignPublicIP"
+                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
@@ -767,6 +787,9 @@
                     ]
                 },
                 "Parameters": {
+                    "AssignPublicIP": {
+                        "Ref": "AssignPublicIP"
+                    },
                     "BootDiskSize": {
                         "Ref": "BootDiskSize"
                     },
