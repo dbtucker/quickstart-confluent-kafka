@@ -117,7 +117,7 @@
                     "default": "Confluent Platform Version"
                 },
                 "ConnectorURLs": {
-                    "default": "Repo(s) for addt'l Connector jars"
+                    "default": "Repo(s) for additional Connector jars"
                 },
                 "KeyPairName": {
                     "default": "Key Pair Name"
