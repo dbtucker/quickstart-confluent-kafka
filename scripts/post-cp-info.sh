@@ -158,10 +158,12 @@ THIS_REGION=${THIS_AZ%[a-z]}
 
 CC_HOST=${workers%%,*}		# private hostname ... we'll map to public
 
-CC_HOST=$(aws ec2 describe-instances --output text --region $THIS_REGION \
+CC_HOST_PUB=$(aws ec2 describe-instances --output text --region $THIS_REGION \
   --filters 'Name=instance-state-name,Values=running' \
   --query 'Reservations[].Instances[].[PublicIpAddress,PublicDnsName,PrivateDnsName,Tags[?Key == `Name`] | [0].Value ]' | \
   grep -w "$CC_HOST" | cut -f 1)
+
+[ -n "$CC_HOST_PUB" ] && [ "$CC_HOST_PUB" != "none" ] && CC_HOST=$CC_HOST_PUB
 
 echo "Posting the following: " >> $LOG
 	
